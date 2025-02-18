@@ -1,6 +1,6 @@
 #include "daltools/bundle/repo.hpp"
 
-#include <sung/basic/bytes.hpp>
+#include <sung/basic/byte_arr.hpp>
 
 #include "daltools/bundle/bundle.hpp"
 #include "daltools/common/compression.h"
