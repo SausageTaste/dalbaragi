@@ -5,6 +5,8 @@
 #include <optional>
 #include <vector>
 
+#include <sung/basic/bytes.hpp>
+
 
 #if false
 namespace std {
@@ -23,6 +25,7 @@ namespace std {
 namespace dal {
 
     namespace fs = std::filesystem;
+    using byte8 = sung::byte8;
     using path = fs::path;
 
 
@@ -61,9 +64,9 @@ namespace dal {
 
         bool is_file(const fs::path& path);
 
-        bool read_file(const fs::path& path, std::vector<uint8_t>& out);
+        bool read_file(const fs::path& path, std::vector<byte8>& out);
         bool read_file(const fs::path& path, std::vector<std::byte>& out);
-        std::optional<std::vector<uint8_t>> read_file(const fs::path& path);
+        std::optional<std::vector<byte8>> read_file(const fs::path& path);
 
     private:
         class Impl;
