@@ -17,7 +17,7 @@ namespace dal {
         std::ifstream file{ path };
         auto yaml_data = YAML::Load(file);
 
-        for (auto& x : yaml_data) {
+        for (const auto& x : yaml_data) {
             const auto name = x["name"].as<std::string>();
             fmt::print("name: {}\n", name);
         }
