@@ -12,7 +12,6 @@
         "nlohmann-json",
         "spdlog",
         "stb",
-        "sungtools",
         "yaml-cpp",
         "zlib",
         {

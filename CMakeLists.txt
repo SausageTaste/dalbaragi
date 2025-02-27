@@ -10,7 +10,7 @@ project(dalbaragi
 )
 
 
-set(DAL_USE_SUNGTOOLS_SUBMODULE OFF CACHE BOOL "Use sungtools as a submodule")
+set(DAL_USE_SUNGTOOLS_SUBMODULE ON CACHE BOOL "Use sungtools as a submodule")
 set(DAL_BUILD_APP OFF CACHE BOOL "Build projects in app folder")
 set(DAL_ENABLE_TEST OFF CACHE BOOL "Enable testing")
 
