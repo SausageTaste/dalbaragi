@@ -12,6 +12,7 @@
 #include <fstream>
 #include <sung/basic/byte_arr.hpp>
 #include <sung/basic/stringtool.hpp>
+#include <sung/basic/threading.hpp>
 
 #include "daltools/bundle/bundle.hpp"
 #include "daltools/dmd/exporter.h"
@@ -69,15 +70,19 @@ namespace {
         return buffer;
     }
 
-    void write_file(const fs::path& path, const byte8* data, size_t size) {
+    bool write_file(const fs::path& path, const byte8* data, size_t size) {
         fs::create_directories(path.parent_path());
         std::ofstream file(path, std::ios::binary);
+        if (!file.is_open())
+            return false;
+
         file.write(reinterpret_cast<const char*>(data), size);
         file.close();
+        return true;
     }
 
-    void write_file(const fs::path& path, const std::vector<byte8>& content) {
-        ::write_file(path, content.data(), content.size());
+    bool write_file(const fs::path& path, const std::vector<byte8>& content) {
+        return ::write_file(path, content.data(), content.size());
     }
 
     dal::CompressMethod deduce_comp_method(const std::string& str) {
@@ -304,6 +309,109 @@ namespace {
         std::unordered_set<std::string> added_names_;
     };
 
+
+    class JsonTask : public sung::IStandardLoadTask {
+
+    public:
+        JsonTask(const WorkDef::Dmd& work_def_, const fs::path& root_path)
+            : work_def_(work_def_), root_path_(root_path) {}
+
+        sung::TaskStatus tick() override {
+            const auto u8path = fs::u8path(work_def_.path_);
+            const auto json_path = ::resolve_path(u8path, root_path_);
+
+            const auto json_data = ::read_file(json_path);
+            if (!json_data) {
+                return this->fail(
+                    "Failed to read file: " + json_path.u8string()
+                );
+            }
+
+            auto bin_path = json_path;
+            bin_path.replace_extension(".bin");
+
+            std::vector<dal::parser::SceneIntermediate> scenes;
+            if (const auto bin_data = ::read_file(bin_path))
+                dal::parser::parse_json_bin(scenes, *json_data, *bin_data);
+            else
+                dal::parser::parse_json(scenes, *json_data);
+
+            if (scenes.size() != 1)
+                return this->fail_fmt(
+                    "Invalid scene count: {}\n", scenes.size()
+                );
+
+            for (auto& scene : scenes) {
+                for (auto& m : scene.materials_) {
+                    textures_in_use_.insert(m.albedo_map_);
+                    textures_in_use_.insert(m.normal_map_);
+                    textures_in_use_.insert(m.metallic_map_);
+                    textures_in_use_.insert(m.roughness_map_);
+                }
+            }
+
+            scene_ = std::move(scenes[0]);
+            return this->success();
+        }
+
+        WorkDef::Dmd work_def_;
+        dal::parser::SceneIntermediate scene_;
+        std::unordered_set<std::string> textures_in_use_;
+
+    private:
+        template <typename... T>
+        auto fail_fmt(fmt::format_string<T...> fmt, T&&... args) {
+            return this->fail(vformat(fmt, fmt::make_format_args(args...)));
+        }
+
+        fs::path root_path_;
+    };
+
+
+    class DmdTask : public sung::IStandardLoadTask {
+
+    public:
+        DmdTask(
+            dal::parser::SceneIntermediate&& scene,
+            const WorkDef::Dmd& work_def,
+            const fs::path& interm_path
+        )
+            : scene_(std::move(scene))
+            , work_def_(work_def)
+            , interm_path_(interm_path) {}
+
+        sung::TaskStatus tick() override {
+            dal::parser::flip_uv_vertically(scene_);
+            dal::parser::clear_collection_info(scene_);
+            dal::parser::reduce_indexed_vertices(scene_);
+            dal::parser::remove_duplicate_materials(scene_);
+            dal::parser::merge_redundant_mesh_actors(scene_);
+            dal::parser::remove_empty_meshes(scene_);
+            dal::parser::reduce_joints(scene_);
+            dal::parser::apply_root_transform(scene_);
+
+            const auto model = dal::parser::convert_to_model_dmd(scene_);
+            const auto bin_built = dal::parser::build_binary_model(
+                model, deduce_comp_method(work_def_.comp_method_)
+            );
+
+            const auto u8path = fs::u8path(work_def_.path_);
+            auto output_path = interm_path_ / u8path.filename();
+            output_path.replace_extension(".dmd");
+            if (!::write_file(output_path, *bin_built))
+                return this->fail(
+                    "Failed to write file: " + output_path.u8string()
+                );
+
+            return this->success();
+        }
+
+    private:
+        dal::parser::SceneIntermediate scene_;
+        WorkDef::Dmd work_def_;
+        fs::path interm_path_;
+    };
+
 }  // namespace
 
 
@@ -314,6 +422,8 @@ namespace dal {
             fmt::print("Usage: dalbatch <path>\n");
             return;
         }
+
+        auto task_sche = sung::create_task_scheduler();
 
         const fs::path yam_path = fs::u8path(argv[2]);
         std::ifstream file{ yam_path };
@@ -334,50 +444,25 @@ namespace dal {
 
         std::unordered_set<std::string> textures_in_use;
 
+        std::vector<std::shared_ptr<::JsonTask>> json_tasks;
         for (auto dmd_work : work.dmd()) {
-            const auto u8path = fs::u8path(dmd_work.path_);
-            const auto json_path = ::resolve_path(u8path, root_path);
+            auto& added = json_tasks.emplace_back();
+            added = std::make_shared<::JsonTask>(dmd_work, root_path);
+            task_sche->add_task(added);
+        }
 
-            const auto json_data = ::read_file(json_path);
-            if (!json_data) {
-                throw_fmt("Failed to read file: {}\n", json_path.u8string());
+        std::vector<std::shared_ptr<::DmdTask>> dmd_tasks;
+        for (auto& json_task : json_tasks) {
+            while (!json_task->is_done()) {
             }
 
-            auto bin_path = json_path;
-            bin_path.replace_extension(".bin");
+            textures_in_use.merge(json_task->textures_in_use_);
 
-            std::vector<dal::parser::SceneIntermediate> scenes;
-            if (const auto bin_data = ::read_file(bin_path))
-                dal::parser::parse_json_bin(scenes, *json_data, *bin_data);
-            else
-                dal::parser::parse_json(scenes, *json_data);
-
-            for (auto& scene : scenes) {
-                for (auto& m : scene.materials_) {
-                    textures_in_use.insert(m.albedo_map_);
-                    textures_in_use.insert(m.normal_map_);
-                    textures_in_use.insert(m.metallic_map_);
-                    textures_in_use.insert(m.roughness_map_);
-                }
-
-                dal::parser::flip_uv_vertically(scene);
-                dal::parser::clear_collection_info(scene);
-                dal::parser::reduce_indexed_vertices(scene);
-                dal::parser::remove_duplicate_materials(scene);
-                dal::parser::merge_redundant_mesh_actors(scene);
-                dal::parser::remove_empty_meshes(scene);
-                dal::parser::reduce_joints(scene);
-                dal::parser::apply_root_transform(scene);
-            }
-
-            const auto model = convert_to_model_dmd(scenes.at(0));
-            const auto bin_built = dal::parser::build_binary_model(
-                model, deduce_comp_method(dmd_work.comp_method_)
+            auto& added = dmd_tasks.emplace_back();
+            added = std::make_shared<::DmdTask>(
+                std::move(json_task->scene_), json_task->work_def_, interm_path
             );
-
-            auto output_path = interm_path / u8path.filename();
-            output_path.replace_extension(".dmd");
-            ::write_file(output_path, *bin_built);
+            task_sche->add_task(added);
         }
 
         textures_in_use.erase("");
@@ -410,6 +495,11 @@ namespace dal {
                 throw_fmt("Failed to copy texture: {}\n", src_path.u8string());
 
             textures_copied.insert(tex);
+        }
+
+        for (auto& dmd_task : dmd_tasks) {
+            while (!dmd_task->is_done()) {
+            }
         }
 
         if (work.bundle()) {
