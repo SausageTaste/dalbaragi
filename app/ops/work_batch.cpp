@@ -412,6 +412,88 @@ namespace {
         fs::path interm_path_;
     };
 
+
+    class TextureTask : public sung::IStandardLoadTask {
+
+    public:
+        TextureTask(
+            const WorkDef::Texture& work_def,
+            const fs::path& file_path,
+            const fs::path& interm_path
+        )
+            : work_def_(work_def)
+            , file_path_(file_path)
+            , interm_path_(interm_path) {}
+
+        sung::TaskStatus tick() override {
+            const auto png_path = interm_path_.parent_path() / "png";
+            const auto png_file_path = png_path / file_path_.filename();
+            fs::create_directories(png_path);
+            fs::copy_file(
+                file_path_, png_file_path, fs::copy_options::update_existing
+            );
+
+            std::string ktx_cmd;
+            ktx_cmd += "ktx create --encode uastc --generate-mipmap";
+
+            std::string format_prefix;
+            if (work_def_.channel_ == "RGBA")
+                format_prefix = "R8G8B8A8";
+            else if (work_def_.channel_ == "RGB")
+                format_prefix = "R8G8B8";
+            else if (work_def_.channel_ == "RG")
+                format_prefix = "R8G8";
+            else if (work_def_.channel_ == "R")
+                format_prefix = "R8";
+            else
+                return this->fail_fmt(
+                    "Invalid channel ({})", work_def_.channel_
+                );
+
+            if (work_def_.srgb_) {
+                ktx_cmd += fmt::format(" --format {}_SRGB", format_prefix);
+                ktx_cmd += " --assign-oetf srgb";
+                ktx_cmd += " --convert-oetf srgb";
+            } else {
+                ktx_cmd += fmt::format(" --format {}_UNORM", format_prefix);
+                ktx_cmd += " --assign-oetf linear";
+                ktx_cmd += " --convert-oetf linear";
+            }
+
+            ktx_cmd += ' ';
+            ktx_cmd += '"';
+            ktx_cmd += png_file_path.u8string();
+            ktx_cmd += '"';
+
+            const auto ktx_path = png_path.parent_path() / "ktx";
+            fs::create_directories(ktx_path);
+            auto ktx_file_path = ktx_path / file_path_.filename();
+            ktx_file_path.replace_extension(".ktx");
+
+            ktx_cmd += ' ';
+            ktx_cmd += '"';
+            ktx_cmd += ktx_file_path.u8string();
+            ktx_cmd += '"';
+
+            SPDLOG_DEBUG("KTX command: {}", ktx_cmd);
+
+            if (0 != system(ktx_cmd.c_str()))
+                return this->fail("Failed KTX command");
+
+            return this->success();
+        }
+
+    private:
+        template <typename... T>
+        auto fail_fmt(fmt::format_string<T...> fmt, T&&... args) {
+            return this->fail(vformat(fmt, fmt::make_format_args(args...)));
+        }
+
+        WorkDef::Texture work_def_;
+        fs::path file_path_;
+        fs::path interm_path_;
+    };
+
 }  // namespace
 
 
@@ -468,17 +550,14 @@ namespace dal {
         textures_in_use.erase("");
         std::unordered_set<std::string> textures_copied;
 
+        std::vector<std::shared_ptr<TextureTask>> tex_tasks;
         for (const auto& tex : work.tex()) {
             const auto src_path = work.find_tex_file(tex.name_, root_path);
-            const auto dst_path = interm_path / src_path.filename();
-            fs::create_directories(dst_path.parent_path());
-            fs::copy_file(
-                src_path, dst_path, fs::copy_options::update_existing
-            );
-            if (!fs::is_regular_file(dst_path))
-                throw_fmt("Failed to copy texture: {}\n", src_path.u8string());
-
             textures_copied.insert(tex.name_);
+
+            auto& added = tex_tasks.emplace_back();
+            added = std::make_shared<::TextureTask>(tex, src_path, interm_path);
+            task_sche->add_task(added);
         }
 
         for (const auto& tex : textures_in_use) {
@@ -497,8 +576,21 @@ namespace dal {
             textures_copied.insert(tex);
         }
 
-        for (auto& dmd_task : dmd_tasks) {
-            while (!dmd_task->is_done()) {
+        for (auto& task : dmd_tasks) {
+            while (!task->is_done()) {
+            }
+
+            if (task->has_failed()) {
+                throw_fmt("DMD task failed: {}\n", task->err_msg());
+            }
+        }
+
+        for (auto& task : tex_tasks) {
+            while (!task->is_done()) {
+            }
+
+            if (task->has_failed()) {
+                throw_fmt("Texture task failed: {}\n", task->err_msg());
             }
         }
 
