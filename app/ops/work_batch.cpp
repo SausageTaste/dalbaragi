@@ -1,14 +1,19 @@
 #include "work_functions.hpp"
 
+#define SPDLOG_ACTIVE_LEVEL 0
+
 #include <optional>
 #include <unordered_set>
 
 #include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 #include <filesystem>
 #include <fstream>
-#include <sung/basic/bytes.hpp>
+#include <sung/basic/byte_arr.hpp>
+#include <sung/basic/stringtool.hpp>
 
+#include "daltools/bundle/bundle.hpp"
 #include "daltools/dmd/exporter.h"
 #include "daltools/json/parser.h"
 #include "daltools/scene/modifier.h"
@@ -18,6 +23,9 @@ namespace fs = std::filesystem;
 
 
 namespace {
+
+    using byte8 = sung::byte8;
+
 
     template <typename... T>
     void throw_fmt(fmt::format_string<T...> fmt, T&&... args) {
@@ -34,7 +42,7 @@ namespace {
         return root / path;
     }
 
-    bool read_file(const fs::path& path, std::vector<sung::byte8>& out) {
+    bool read_file(const fs::path& path, std::vector<byte8>& out) {
         std::ifstream file{ path,
                             std::ios::ate | std::ios::binary | std::ios::in };
 
@@ -52,13 +60,24 @@ namespace {
         return true;
     }
 
-    std::optional<std::vector<sung::byte8>> read_file(const fs::path& path) {
-        std::vector<sung::byte8> buffer;
+    std::optional<std::vector<byte8>> read_file(const fs::path& path) {
+        std::vector<byte8> buffer;
         if (!read_file(path, buffer)) {
             return std::nullopt;
         }
 
         return buffer;
+    }
+
+    void write_file(const fs::path& path, const byte8* data, size_t size) {
+        fs::create_directories(path.parent_path());
+        std::ofstream file(path, std::ios::binary);
+        file.write(reinterpret_cast<const char*>(data), size);
+        file.close();
+    }
+
+    void write_file(const fs::path& path, const std::vector<byte8>& content) {
+        ::write_file(path, content.data(), content.size());
     }
 
     dal::CompressMethod deduce_comp_method(const std::string& str) {
@@ -123,6 +142,8 @@ namespace {
                     }
                 } else if (entry_name._Starts_with("texture_list")) {
                     this->parse_texture_list(data);
+                } else {
+                    fmt::print("Unknown entry: {}\n", entry_name);
                 }
             }
         }
@@ -211,6 +232,78 @@ namespace {
         std::optional<Bundle> bundle_;
     };
 
+
+    class BundleBuilder {
+
+    public:
+        bool add_file(const fs::path& path) {
+            const auto name = path.filename().u8string();
+            if (added_names_.find(name) != added_names_.end()) {
+                return false;
+            } else {
+                added_names_.insert(name);
+            }
+
+            const auto content = ::read_file(path);
+            if (!content)
+                throw_fmt("Failed to read file: {}\n", path.u8string());
+
+            const auto [offset, size] = data_block_.add_std_arr(*content);
+            items_block_.add_nt_str(name.c_str());
+            items_block_.add_uint64(offset);
+            items_block_.add_uint64(size);
+
+            SPDLOG_INFO("Added '{}' ({})", name, sung::format_bytes(size));
+        }
+
+        std::vector<byte8> build(int comp_level) {
+            sung::BytesBuilder combined;
+            combined.enlarge(sizeof(dal::BundleHeader));
+
+            const auto items_bro = dal::compress_bro(
+                items_block_.vector(), comp_level
+            );
+            const auto items_info = combined.add_std_arr(*items_bro);
+            SPDLOG_INFO(
+                "Item info: count={}, size={}, size_z={}, ratio={:.2f}",
+                added_names_.size(),
+                sung::format_bytes(items_block_.size()),
+                sung::format_bytes(items_info.second),
+                static_cast<double>(items_info.second) / items_block_.size()
+            );
+
+            const auto data_bro = dal::compress_bro(
+                data_block_.vector(), comp_level
+            );
+            const auto data_info = combined.add_std_arr(*data_bro);
+            SPDLOG_INFO(
+                "Data info: size={}, size_z={}, ratio={:.2f}",
+                sung::format_bytes(data_block_.size()),
+                sung::format_bytes(data_info.second),
+                static_cast<double>(data_info.second) / data_block_.size()
+            );
+
+            auto& header = *reinterpret_cast<dal::BundleHeader*>(combined.data()
+            );
+            header.init();
+            header.set_items_info(
+                items_info.first,
+                items_block_.size(),
+                items_info.second,
+                added_names_.size()
+            );
+            header.set_data_info(
+                data_info.first, data_block_.size(), data_info.second
+            );
+
+            return combined.release();
+        }
+
+    private:
+        sung::BytesBuilder items_block_, data_block_;
+        std::unordered_set<std::string> added_names_;
+    };
+
 }  // namespace
 
 
@@ -228,11 +321,16 @@ namespace dal {
 
         ::WorkDef work;
         work.parse(yam);
-        work.print_all();
+        // work.print_all();
 
         const auto root_path = yam_path.parent_path();
         const auto out_path = root_path / "out";
         const auto interm_path = out_path / "intermediate";
+        const auto final_path = out_path / "final";
+
+        if (fs::is_directory(final_path) && !fs::exists(interm_path)) {
+            fs::rename(final_path, interm_path);
+        }
 
         std::unordered_set<std::string> textures_in_use;
 
@@ -262,7 +360,6 @@ namespace dal {
                     textures_in_use.insert(m.roughness_map_);
                 }
 
-                /*
                 dal::parser::flip_uv_vertically(scene);
                 dal::parser::clear_collection_info(scene);
                 dal::parser::reduce_indexed_vertices(scene);
@@ -271,7 +368,6 @@ namespace dal {
                 dal::parser::remove_empty_meshes(scene);
                 dal::parser::reduce_joints(scene);
                 dal::parser::apply_root_transform(scene);
-                */
             }
 
             const auto model = convert_to_model_dmd(scenes.at(0));
@@ -281,13 +377,7 @@ namespace dal {
 
             auto output_path = interm_path / u8path.filename();
             output_path.replace_extension(".dmd");
-
-            fs::create_directories(output_path.parent_path());
-            std::ofstream file(
-                output_path.u8string().c_str(), std::ios::binary
-            );
-            file.write((const char*)bin_built->data(), bin_built->size());
-            file.close();
+            ::write_file(output_path, *bin_built);
         }
 
         textures_in_use.erase("");
@@ -296,6 +386,7 @@ namespace dal {
         for (const auto& tex : work.tex()) {
             const auto src_path = work.find_tex_file(tex.name_, root_path);
             const auto dst_path = interm_path / src_path.filename();
+            fs::create_directories(dst_path.parent_path());
             fs::copy_file(
                 src_path, dst_path, fs::copy_options::update_existing
             );
@@ -311,11 +402,43 @@ namespace dal {
 
             const auto src_path = work.find_tex_file(tex, root_path);
             const auto dst_path = interm_path / src_path.filename();
+            fs::create_directories(dst_path.parent_path());
             fs::copy_file(
                 src_path, dst_path, fs::copy_options::update_existing
             );
             if (!fs::is_regular_file(dst_path))
                 throw_fmt("Failed to copy texture: {}\n", src_path.u8string());
+
+            textures_copied.insert(tex);
+        }
+
+        if (work.bundle()) {
+            ::BundleBuilder dun_builder;
+
+            for (const auto& name : textures_copied) {
+                dun_builder.add_file(interm_path / fs::u8path(name));
+            }
+
+            for (const auto& dmd : work.dmd()) {
+                const auto u8path = fs::u8path(dmd.path_);
+                auto path = interm_path / u8path.filename();
+                path.replace_extension(".dmd");
+                dun_builder.add_file(path);
+            }
+
+            const auto comp_level = work.bundle()->comp_level_;
+            const auto bin_data = dun_builder.build(comp_level);
+
+            const auto dun_path = final_path / work.bundle()->name_;
+
+            ::write_file(dun_path, bin_data);
+            SPDLOG_INFO(
+                "Output: '{}' ({})",
+                dun_path.u8string(),
+                sung::format_bytes(bin_data.size())
+            );
+        } else {
+            fs::rename(interm_path, final_path);
         }
 
         return;
