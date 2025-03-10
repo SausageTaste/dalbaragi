@@ -3,7 +3,9 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define SPDLOG_ACTIVE_LEVEL 0
 
+#include <map>
 #include <optional>
+#include <set>
 #include <unordered_set>
 
 #include <spdlog/fmt/fmt.h>
@@ -102,6 +104,16 @@ namespace {
         }
 
         throw_fmt("Invalid compression method: {}\n", str);
+        return dal::CompressMethod::none;
+    }
+
+    std::string replace_ext(const std::string& str, const std::string& ext) {
+        const auto pos = str.find_last_of('.');
+        if (pos == std::string::npos) {
+            return str + '.' + ext;
+        } else {
+            return str.substr(0, pos) + '.' + ext;
+        }
     }
 
 
@@ -156,7 +168,8 @@ namespace {
             }
         }
 
-        fs::path find_tex_file(const std::string& src, const fs::path& root) {
+        fs::path find_tex_file(const std::string& src, const fs::path& root)
+            const {
             for (const auto& lup : texture_lookup_paths_) {
                 const auto lup_resolved = resolve_path(lup, root);
                 if (!fs::is_directory(lup_resolved)) {
@@ -186,6 +199,17 @@ namespace {
             }
 
             throw_fmt("Texture not found: {}\n", src);
+            return {};
+        }
+
+        bool has_tex(const std::string& name) const {
+            for (const auto& tex : textures_) {
+                if (tex.name_ == name) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         void print_all() const {
@@ -226,8 +250,14 @@ namespace {
                 const auto srgb = entry["srgb"].as<bool>();
 
                 for (auto& s : entry["src"]) {
+                    auto name = s.as<std::string>();
+                    if (name.empty())
+                        throw_fmt("Empty texture name");
+                    if (this->has_tex(name))
+                        throw_fmt("Duplicated texture name: {}", name);
+
                     auto& dst = textures_.emplace_back();
-                    dst.name_ = s.as<std::string>();
+                    dst.name_ = std::move(name);
                     dst.channel_ = channels;
                     dst.srgb_ = srgb;
                 }
@@ -238,6 +268,26 @@ namespace {
         std::vector<Texture> textures_;
         std::vector<std::string> texture_lookup_paths_;
         std::optional<Bundle> bundle_;
+    };
+
+
+    class FileList {
+
+    public:
+        void insert(const fs::path& path) {
+            const auto name = path.filename().u8string();
+            if (data_.find(name) != data_.end()) {
+                throw_fmt("Duplicated file name: {}\n", name);
+            }
+
+            data_[name] = path;
+        }
+
+        auto begin() const { return data_.begin(); }
+        auto end() const { return data_.end(); }
+
+    private:
+        std::map<std::string, fs::path> data_;
     };
 
 
@@ -262,6 +312,7 @@ namespace {
             items_block_.add_uint64(size);
 
             SPDLOG_INFO("Added '{}' ({})", name, sung::format_bytes(size));
+            return true;
         }
 
         std::vector<byte8> build(int comp_level) {
@@ -376,12 +427,14 @@ namespace {
     public:
         DmdTask(
             dal::parser::SceneIntermediate&& scene,
-            const WorkDef::Dmd& work_def,
-            const fs::path& interm_path
+            const WorkDef& work_def,
+            const WorkDef::Dmd& dmd_def,
+            const fs::path& out_dir
         )
             : scene_(std::move(scene))
             , work_def_(work_def)
-            , interm_path_(interm_path) {}
+            , dmd_def_(dmd_def)
+            , out_dir_(out_dir) {}
 
         sung::TaskStatus tick() override {
             dal::parser::flip_uv_vertically(scene_);
@@ -393,26 +446,50 @@ namespace {
             dal::parser::reduce_joints(scene_);
             dal::parser::apply_root_transform(scene_);
 
+            for (auto& m : scene_.materials_) {
+                if (work_def_.has_tex(m.albedo_map_)) {
+                    m.albedo_map_ = ::replace_ext(m.albedo_map_, "ktx");
+                    SPDLOG_DEBUG("Replaced albedo map: {}", m.albedo_map_);
+                }
+                if (work_def_.has_tex(m.normal_map_)) {
+                    m.normal_map_ = ::replace_ext(m.normal_map_, "ktx");
+                    SPDLOG_DEBUG("Replaced normal map: {}", m.normal_map_);
+                }
+                if (work_def_.has_tex(m.metallic_map_)) {
+                    m.metallic_map_ = ::replace_ext(m.metallic_map_, "ktx");
+                    SPDLOG_DEBUG("Replaced metallic map: {}", m.metallic_map_);
+                }
+                if (work_def_.has_tex(m.roughness_map_)) {
+                    m.roughness_map_ = ::replace_ext(m.roughness_map_, "ktx");
+                    SPDLOG_DEBUG(
+                        "Replaced roughness map: {}", m.roughness_map_
+                    );
+                }
+            }
+
             const auto model = dal::parser::convert_to_model_dmd(scene_);
             const auto bin_built = dal::parser::build_binary_model(
-                model, deduce_comp_method(work_def_.comp_method_)
+                model, deduce_comp_method(dmd_def_.comp_method_)
             );
 
-            const auto u8path = fs::u8path(work_def_.path_);
-            auto output_path = interm_path_ / u8path.filename();
-            output_path.replace_extension(".dmd");
-            if (!::write_file(output_path, *bin_built))
+            const auto u8path = fs::u8path(dmd_def_.path_);
+            output_path_ = out_dir_ / "dmd" / u8path.filename();
+            output_path_.replace_extension(".dmd");
+            if (!::write_file(output_path_, *bin_built))
                 return this->fail(
-                    "Failed to write file: " + output_path.u8string()
+                    "Failed to write file: " + output_path_.u8string()
                 );
 
             return this->success();
         }
 
+        fs::path output_path_;
+
     private:
         dal::parser::SceneIntermediate scene_;
-        WorkDef::Dmd work_def_;
-        fs::path interm_path_;
+        const WorkDef& work_def_;
+        WorkDef::Dmd dmd_def_;
+        fs::path out_dir_;
     };
 
 
@@ -422,14 +499,12 @@ namespace {
         TextureTask(
             const WorkDef::Texture& work_def,
             const fs::path& file_path,
-            const fs::path& interm_path
+            const fs::path& out_dir
         )
-            : work_def_(work_def)
-            , file_path_(file_path)
-            , interm_path_(interm_path) {}
+            : work_def_(work_def), file_path_(file_path), out_dir_(out_dir) {}
 
         sung::TaskStatus tick() override {
-            const auto ktx_dir = interm_path_.parent_path() / "ktx";
+            const auto ktx_dir = out_dir_ / "ktx";
             output_path_ = ktx_dir / file_path_.filename();
             output_path_.replace_extension(".ktx");
             if (fs::is_regular_file(output_path_)) {
@@ -439,7 +514,7 @@ namespace {
 
             fs::path src_path;
             if (!this->is_ktx_compatible(file_path_)) {
-                const auto png_dir = interm_path_.parent_path() / "png";
+                const auto png_dir = out_dir_ / "png";
                 src_path = png_dir / file_path_.filename();
                 src_path.replace_extension(".png");
 
@@ -558,7 +633,7 @@ namespace {
 
         WorkDef::Texture work_def_;
         fs::path file_path_;
-        fs::path interm_path_;
+        fs::path out_dir_;
     };
 
 }  // namespace
@@ -586,12 +661,7 @@ namespace dal {
 
         const auto root_path = yam_path.parent_path();
         const auto out_path = root_path / "out";
-        const auto interm_path = out_path / "intermediate";
         const auto final_path = out_path / "final";
-
-        if (fs::is_directory(final_path) && !fs::exists(interm_path)) {
-            fs::rename(final_path, interm_path);
-        }
 
         std::vector<std::shared_ptr<::JsonTask>> json_tasks;
         for (auto dmd_work : work.dmd()) {
@@ -601,21 +671,23 @@ namespace dal {
         }
 
         std::unordered_set<std::string> textures_in_use;
-        std::vector<std::shared_ptr<sung::IStandardLoadTask>> fire_tasks;
+        std::vector<std::shared_ptr<::DmdTask>> dmd_tasks;
         for (auto& json_task : json_tasks) {
             json_task->wait_spinlock();
             textures_in_use.merge(json_task->textures_in_use_);
 
-            auto& added = fire_tasks.emplace_back();
+            auto& added = dmd_tasks.emplace_back();
             added = std::make_shared<::DmdTask>(
-                std::move(json_task->scene_), json_task->work_def_, interm_path
+                std::move(json_task->scene_),
+                work,
+                json_task->work_def_,
+                out_path
             );
             task_sche->add_task(added);
         }
-
         textures_in_use.erase("");
-        std::unordered_set<std::string> textures_copied;
 
+        std::unordered_set<std::string> textures_copied;
         std::vector<std::shared_ptr<::TextureTask>> tex_tasks;
         for (const auto& tex : work.tex()) {
             if (textures_in_use.find(tex.name_) == textures_in_use.end())
@@ -623,11 +695,12 @@ namespace dal {
 
             const auto src_path = work.find_tex_file(tex.name_, root_path);
             auto& added = tex_tasks.emplace_back();
-            added = std::make_shared<::TextureTask>(tex, src_path, interm_path);
+            added = std::make_shared<::TextureTask>(tex, src_path, out_path);
             task_sche->add_task(added);
+            textures_copied.insert(tex.name_);
         }
 
-        std::vector<fs::path> tex_ready;
+        ::FileList final_files;
         for (const auto& tex : textures_in_use) {
             if (textures_copied.find(tex) != textures_copied.end())
                 continue;
@@ -636,7 +709,7 @@ namespace dal {
             if (!fs::is_regular_file(src_path))
                 throw_fmt("Failed to copy texture: {}\n", src_path.u8string());
 
-            tex_ready.push_back(src_path);
+            final_files.insert(src_path);
         }
 
         for (auto& task : tex_tasks) {
@@ -644,28 +717,21 @@ namespace dal {
             if (task->has_failed())
                 throw_fmt("Texture task failed: {}\n", task->err_msg());
 
-            tex_ready.push_back(task->output_path_);
+            final_files.insert(task->output_path_);
         }
 
-        for (auto& task : fire_tasks) {
+        for (auto& task : dmd_tasks) {
             task->wait_spinlock();
             if (task->has_failed())
                 throw_fmt("A task failed: {}\n", task->err_msg());
+
+            final_files.insert(task->output_path_);
         }
 
         if (work.bundle()) {
             ::BundleBuilder dun_builder;
-
-            for (const auto& path : tex_ready) {
+            for (const auto& [name, path] : final_files)
                 dun_builder.add_file(path);
-            }
-
-            for (const auto& dmd : work.dmd()) {
-                const auto u8path = fs::u8path(dmd.path_);
-                auto path = interm_path / u8path.filename();
-                path.replace_extension(".dmd");
-                dun_builder.add_file(path);
-            }
 
             const auto comp_level = work.bundle()->comp_level_;
             const auto bin_data = dun_builder.build(comp_level);
@@ -678,7 +744,13 @@ namespace dal {
                 sung::format_bytes(bin_data.size())
             );
         } else {
-            fs::rename(interm_path, final_path);
+            for (const auto& [name, path] : final_files) {
+                const auto dst_path = final_path / path.filename();
+                fs::create_directories(final_path);
+                fs::copy_file(
+                    path, dst_path, fs::copy_options::overwrite_existing
+                );
+            }
         }
 
         return;
