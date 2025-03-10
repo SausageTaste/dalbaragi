@@ -1,5 +1,6 @@
 #include "work_functions.hpp"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #define SPDLOG_ACTIVE_LEVEL 0
 
 #include <optional>
@@ -7,6 +8,8 @@
 
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
+#include <stb_image.h>
+#include <stb_image_write.h>
 #include <yaml-cpp/yaml.h>
 #include <filesystem>
 #include <fstream>
@@ -30,9 +33,9 @@ namespace {
 
     template <typename... T>
     void throw_fmt(fmt::format_string<T...> fmt, T&&... args) {
-        throw std::runtime_error{
-            vformat(fmt, fmt::make_format_args(args...))
-        };
+        const auto msg = vformat(fmt, fmt::make_format_args(args...));
+        SPDLOG_CRITICAL(msg);
+        throw std::runtime_error{ msg };
     }
 
     fs::path resolve_path(const fs::path& path, const fs::path& root) {
@@ -426,12 +429,62 @@ namespace {
             , interm_path_(interm_path) {}
 
         sung::TaskStatus tick() override {
-            const auto png_path = interm_path_.parent_path() / "png";
-            const auto png_file_path = png_path / file_path_.filename();
-            fs::create_directories(png_path);
-            fs::copy_file(
-                file_path_, png_file_path, fs::copy_options::update_existing
-            );
+            const auto ktx_dir = interm_path_.parent_path() / "ktx";
+            output_path_ = ktx_dir / file_path_.filename();
+            output_path_.replace_extension(".ktx");
+            if (fs::is_regular_file(output_path_)) {
+                SPDLOG_DEBUG("Use existing KTX: {}", output_path_.u8string());
+                return this->success();
+            }
+
+            fs::path src_path;
+            if (!this->is_ktx_compatible(file_path_)) {
+                const auto png_dir = interm_path_.parent_path() / "png";
+                src_path = png_dir / file_path_.filename();
+                src_path.replace_extension(".png");
+
+                if (fs::exists(src_path)) {
+                    SPDLOG_DEBUG("Use existing PNG: {}", src_path.u8string());
+                } else {
+                    const auto content = ::read_file(file_path_);
+                    if (!content)
+                        return this->fail("Failed to read image file");
+
+                    int width, height, channels;
+                    const auto img = stbi_load_from_memory(
+                        content->data(),
+                        content->size(),
+                        &width,
+                        &height,
+                        &channels,
+                        0
+                    );
+
+                    ImageWriteContext ctx;
+                    const auto res = stbi_write_png_to_func(
+                        write_img,
+                        &ctx,
+                        width,
+                        height,
+                        channels,
+                        img,
+                        width * channels
+                    );
+                    if (0 == res)
+                        return this->fail("Failed to write PNG file");
+
+                    stbi_image_free(img);
+
+                    fs::create_directories(png_dir);
+                    if (!::write_file(src_path, ctx.data_))
+                        return this->fail("Failed to write PNG file");
+                }
+            } else {
+                src_path = file_path_;
+            }
+
+            if (!fs::is_regular_file(src_path))
+                return this->fail("Source file not found");
 
             std::string ktx_cmd;
             ktx_cmd += "ktx create --encode uastc --generate-mipmap";
@@ -462,31 +515,45 @@ namespace {
 
             ktx_cmd += ' ';
             ktx_cmd += '"';
-            ktx_cmd += png_file_path.u8string();
+            ktx_cmd += src_path.u8string();
             ktx_cmd += '"';
-
-            const auto ktx_path = png_path.parent_path() / "ktx";
-            fs::create_directories(ktx_path);
-            auto ktx_file_path = ktx_path / file_path_.filename();
-            ktx_file_path.replace_extension(".ktx");
 
             ktx_cmd += ' ';
             ktx_cmd += '"';
-            ktx_cmd += ktx_file_path.u8string();
+            ktx_cmd += output_path_.u8string();
             ktx_cmd += '"';
 
             SPDLOG_DEBUG("KTX command: {}", ktx_cmd);
 
+            fs::create_directories(ktx_dir);
             if (0 != system(ktx_cmd.c_str()))
                 return this->fail("Failed KTX command");
 
             return this->success();
         }
 
+        fs::path output_path_;
+
     private:
+        struct ImageWriteContext {
+            std::vector<byte8> data_;
+        };
+
         template <typename... T>
         auto fail_fmt(fmt::format_string<T...> fmt, T&&... args) {
             return this->fail(vformat(fmt, fmt::make_format_args(args...)));
+        }
+
+        static void write_img(void* context, void* data, int size) {
+            auto& ctx = *reinterpret_cast<ImageWriteContext*>(context);
+            ctx.data_.insert(
+                ctx.data_.end(), (byte8*)data, (byte8*)data + size
+            );
+        }
+
+        static bool is_ktx_compatible(const fs::path& path) {
+            const auto ext = path.extension().u8string();
+            return ext == ".png";
         }
 
         WorkDef::Texture work_def_;
@@ -500,6 +567,8 @@ namespace {
 namespace dal {
 
     void work_batch(int argc, char* argv[]) {
+        spdlog::set_level(spdlog::level::debug);
+
         if (argc < 3) {
             fmt::print("Usage: dalbatch <path>\n");
             return;
@@ -509,7 +578,7 @@ namespace dal {
 
         const fs::path yam_path = fs::u8path(argv[2]);
         std::ifstream file{ yam_path };
-        auto yam = YAML::Load(file);
+        const auto yam = YAML::Load(file);
 
         ::WorkDef work;
         work.parse(yam);
@@ -524,8 +593,6 @@ namespace dal {
             fs::rename(final_path, interm_path);
         }
 
-        std::unordered_set<std::string> textures_in_use;
-
         std::vector<std::shared_ptr<::JsonTask>> json_tasks;
         for (auto dmd_work : work.dmd()) {
             auto& added = json_tasks.emplace_back();
@@ -533,14 +600,13 @@ namespace dal {
             task_sche->add_task(added);
         }
 
-        std::vector<std::shared_ptr<::DmdTask>> dmd_tasks;
+        std::unordered_set<std::string> textures_in_use;
+        std::vector<std::shared_ptr<sung::IStandardLoadTask>> fire_tasks;
         for (auto& json_task : json_tasks) {
-            while (!json_task->is_done()) {
-            }
-
+            json_task->wait_spinlock();
             textures_in_use.merge(json_task->textures_in_use_);
 
-            auto& added = dmd_tasks.emplace_back();
+            auto& added = fire_tasks.emplace_back();
             added = std::make_shared<::DmdTask>(
                 std::move(json_task->scene_), json_task->work_def_, interm_path
             );
@@ -550,55 +616,48 @@ namespace dal {
         textures_in_use.erase("");
         std::unordered_set<std::string> textures_copied;
 
-        std::vector<std::shared_ptr<TextureTask>> tex_tasks;
+        std::vector<std::shared_ptr<::TextureTask>> tex_tasks;
         for (const auto& tex : work.tex()) {
-            const auto src_path = work.find_tex_file(tex.name_, root_path);
-            textures_copied.insert(tex.name_);
+            if (textures_in_use.find(tex.name_) == textures_in_use.end())
+                continue;
 
+            const auto src_path = work.find_tex_file(tex.name_, root_path);
             auto& added = tex_tasks.emplace_back();
             added = std::make_shared<::TextureTask>(tex, src_path, interm_path);
             task_sche->add_task(added);
         }
 
+        std::vector<fs::path> tex_ready;
         for (const auto& tex : textures_in_use) {
             if (textures_copied.find(tex) != textures_copied.end())
                 continue;
 
             const auto src_path = work.find_tex_file(tex, root_path);
-            const auto dst_path = interm_path / src_path.filename();
-            fs::create_directories(dst_path.parent_path());
-            fs::copy_file(
-                src_path, dst_path, fs::copy_options::update_existing
-            );
-            if (!fs::is_regular_file(dst_path))
+            if (!fs::is_regular_file(src_path))
                 throw_fmt("Failed to copy texture: {}\n", src_path.u8string());
 
-            textures_copied.insert(tex);
-        }
-
-        for (auto& task : dmd_tasks) {
-            while (!task->is_done()) {
-            }
-
-            if (task->has_failed()) {
-                throw_fmt("DMD task failed: {}\n", task->err_msg());
-            }
+            tex_ready.push_back(src_path);
         }
 
         for (auto& task : tex_tasks) {
-            while (!task->is_done()) {
-            }
-
-            if (task->has_failed()) {
+            task->wait_spinlock();
+            if (task->has_failed())
                 throw_fmt("Texture task failed: {}\n", task->err_msg());
-            }
+
+            tex_ready.push_back(task->output_path_);
+        }
+
+        for (auto& task : fire_tasks) {
+            task->wait_spinlock();
+            if (task->has_failed())
+                throw_fmt("A task failed: {}\n", task->err_msg());
         }
 
         if (work.bundle()) {
             ::BundleBuilder dun_builder;
 
-            for (const auto& name : textures_copied) {
-                dun_builder.add_file(interm_path / fs::u8path(name));
+            for (const auto& path : tex_ready) {
+                dun_builder.add_file(path);
             }
 
             for (const auto& dmd : work.dmd()) {
@@ -610,10 +669,9 @@ namespace dal {
 
             const auto comp_level = work.bundle()->comp_level_;
             const auto bin_data = dun_builder.build(comp_level);
-
             const auto dun_path = final_path / work.bundle()->name_;
-
             ::write_file(dun_path, bin_data);
+
             SPDLOG_INFO(
                 "Output: '{}' ({})",
                 dun_path.u8string(),
