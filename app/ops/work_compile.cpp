@@ -71,10 +71,12 @@ namespace {
             result = parse_json(scenes, *json_data);
         }
 
+        std::vector<std::string> tex_lookup_paths{ src_path.u8string() };
+
         for (auto& scene : scenes) {
             flip_uv_vertically(scene);
             clear_collection_info(scene);
-            optimize_scene(scene, src_path);
+            optimize_scene(scene, tex_lookup_paths);
         }
 
         const auto model = convert_to_model_dmd(scenes.at(0));

@@ -442,6 +442,9 @@ namespace {
             dal::parser::reduce_indexed_vertices(scene_);
             dal::parser::remove_duplicate_materials(scene_);
             dal::parser::merge_redundant_mesh_actors(scene_);
+            dal::parser::split_by_transparency(
+                scene_, work_def_.tex_lookup_paths()
+            );
             dal::parser::remove_empty_meshes(scene_);
             dal::parser::reduce_joints(scene_);
             dal::parser::apply_root_transform(scene_);

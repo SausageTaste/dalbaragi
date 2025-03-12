@@ -17,6 +17,7 @@
 
 namespace {
 
+    namespace fs = std::filesystem;
     namespace dalp = dal::parser;
     using scene_t = dalp::SceneIntermediate;
 
@@ -596,27 +597,31 @@ namespace {
     const static std::string TRANSP_SUFFIX = "#transp";
 
 
-    std::optional<std::filesystem::path> find_image_path(
-        const std::filesystem::path& path, const std::string& img_name
+    std::optional<fs::path> find_image_path(
+        const std::vector<std::string>& paths, const std::string& img_name
     ) {
         if (img_name.empty())
             return std::nullopt;
 
-        const auto image_name_path = std::filesystem::u8path(img_name);
+        const auto img_name_path = fs::u8path(img_name);
 
-        if (std::filesystem::is_regular_file(image_name_path))
-            return image_name_path;
+        {
+            const auto img_path = img_name_path;
+            if (fs::is_regular_file(img_path))
+                return img_path;
+        }
 
-        auto img_path = path;
-        img_path.replace_filename(image_name_path);
-        if (std::filesystem::is_regular_file(img_path))
-            return img_path;
+        for (const auto& path : paths) {
+            const auto img_path = fs::u8path(path) / img_name_path;
+            if (fs::is_regular_file(img_path))
+                return img_path;
+        }
 
         return std::nullopt;
     }
 
     template <typename T>
-    std::optional<T> read_file(const std::filesystem::path& path) {
+    std::optional<T> read_file(const fs::path& path) {
         std::ifstream file{ path,
                             std::ios::ate | std::ios::binary | std::ios::in };
 
@@ -878,7 +883,7 @@ namespace {
 namespace dal::parser {
 
     void split_by_transparency(
-        SceneIntermediate& scene, const std::filesystem::path& path
+        SceneIntermediate& scene, const std::vector<std::string>& tex_lookup
     ) {
         using namespace std;
 
@@ -907,7 +912,7 @@ namespace dal::parser {
                 );
                 if (nullptr == mat)
                     continue;
-                auto img_path = ::find_image_path(path, mat->albedo_map_);
+                auto img_path = ::find_image_path(tex_lookup, mat->albedo_map_);
                 if (!img_path)
                     continue;
                 auto img_file_content = ::read_file<vector<uint8_t>>(*img_path);

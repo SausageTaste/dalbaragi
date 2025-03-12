@@ -7,6 +7,9 @@
 
 namespace dal::parser {
 
+    namespace fs = std::filesystem;
+
+
     Mesh_Indexed convert_to_indexed(const Mesh_Straight& input);
 
     Mesh_IndexedJoint convert_to_indexed(const Mesh_StraightJoint& input);
@@ -45,16 +48,18 @@ namespace dal::parser {
     void remove_empty_meshes(SceneIntermediate& scene);
 
     void split_by_transparency(
-        SceneIntermediate& scene, const std::filesystem::path& path
+        SceneIntermediate& scene,
+        const std::vector<std::string>& tex_lookup_paths
     );
 
     inline void optimize_scene(
-        SceneIntermediate& scene, const std::filesystem::path& path
+        SceneIntermediate& scene,
+        const std::vector<std::string>& tex_lookup_paths
     ) {
         reduce_indexed_vertices(scene);
         remove_duplicate_materials(scene);
         merge_redundant_mesh_actors(scene);
-        split_by_transparency(scene, path);
+        split_by_transparency(scene, tex_lookup_paths);
         remove_empty_meshes(scene);
         reduce_joints(scene);
         apply_root_transform(scene);
