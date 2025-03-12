@@ -647,14 +647,17 @@ namespace dal {
     void work_batch(int argc, char* argv[]) {
         spdlog::set_level(spdlog::level::debug);
 
-        if (argc < 3) {
-            fmt::print("Usage: dalbatch <path>\n");
-            return;
+        fs::path yam_path;
+        if (argc >= 3) {
+            yam_path = fs::u8path(argv[2]);
+        } else if (argc >= 2) {
+            yam_path = "dalbatch.yml";
+        } else {
+            throw_fmt("No YAML file specified");
         }
 
         auto task_sche = sung::create_task_scheduler();
 
-        const fs::path yam_path = fs::u8path(argv[2]);
         std::ifstream file{ yam_path };
         const auto yam = YAML::Load(file);
 
