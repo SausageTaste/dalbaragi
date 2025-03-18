@@ -168,8 +168,14 @@ namespace {
             }
         }
 
-        fs::path find_tex_file(const std::string& src, const fs::path& root)
-            const {
+        fs::path find_tex_file(std::string src, const fs::path& root) const {
+            // Trim prefix //
+            if (src._Starts_with("//")) {
+                src = src.substr(2);
+            } else if (src._Starts_with("/")) {
+                src = src.substr(1);
+            }
+
             for (const auto& lup : texture_lookup_paths_) {
                 const auto lup_resolved = resolve_path(lup, root);
                 if (!fs::is_directory(lup_resolved)) {
@@ -659,6 +665,8 @@ namespace dal {
         auto task_sche = sung::create_task_scheduler();
 
         std::ifstream file{ yam_path };
+        if (!file.is_open())
+            throw_fmt("Failed to open file: {}\n", yam_path.u8string());
         const auto yam = YAML::Load(file);
 
         ::WorkDef work;
@@ -680,6 +688,9 @@ namespace dal {
         std::vector<std::shared_ptr<::DmdTask>> dmd_tasks;
         for (auto& json_task : json_tasks) {
             json_task->wait_spinlock();
+            if (json_task->has_failed())
+                throw_fmt("JSON task failed: {}\n", json_task->err_msg());
+
             textures_in_use.merge(json_task->textures_in_use_);
 
             auto& added = dmd_tasks.emplace_back();
