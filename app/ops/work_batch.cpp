@@ -208,6 +208,9 @@ namespace {
             }
 
             for (const auto& lup : texture_lookup_paths_) {
+                if (lup.empty())
+                    continue;
+
                 const auto lup_resolved = resolve_path(lup, root);
                 if (!fs::is_directory(lup_resolved)) {
                     throw_fmt(
