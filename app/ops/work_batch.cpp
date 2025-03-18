@@ -26,6 +26,14 @@
 #include "daltools/scene/modifier.h"
 
 
+#define THROWF(...)                                \
+    do {                                           \
+        const auto msg = fmt::format(__VA_ARGS__); \
+        SPDLOG_CRITICAL(msg);                      \
+        throw std::runtime_error{ msg };           \
+    } while (0)
+
+
 namespace fs = std::filesystem;
 
 
@@ -33,13 +41,6 @@ namespace {
 
     using byte8 = sung::byte8;
 
-
-    template <typename... T>
-    void throw_fmt(fmt::format_string<T...> fmt, T&&... args) {
-        const auto msg = vformat(fmt, fmt::make_format_args(args...));
-        SPDLOG_CRITICAL(msg);
-        throw std::runtime_error{ msg };
-    }
 
     fs::path resolve_path(const fs::path& path, const fs::path& root) {
         if (path.is_absolute()) {
@@ -104,7 +105,7 @@ namespace {
             }
         }
 
-        throw_fmt("Invalid compression method: {}\n", str);
+        THROWF("Invalid compression method: {}\n", str);
         return dal::CompressMethod::none;
     }
 
@@ -176,7 +177,7 @@ namespace {
                         data["compression_method"].as<std::string>();
                 } else if (entry_name._Starts_with("bundle")) {
                     if (bundle_) {
-                        throw_fmt("Only one bundle is allowed.");
+                        THROWF("Only one bundle is allowed.");
                     } else {
                         bundle_ = Bundle{};
                         auto& dst = bundle_.value();
@@ -213,9 +214,7 @@ namespace {
 
                 const auto lup_resolved = resolve_path(lup, root);
                 if (!fs::is_directory(lup_resolved)) {
-                    throw_fmt(
-                        "Texture lookup path is not a directory: {}\n", lup
-                    );
+                    THROWF("Texture lookup path is not a directory: {}\n", lup);
                 }
 
                 const auto tex_path = lup_resolved / src;
@@ -238,7 +237,7 @@ namespace {
                 }
             }
 
-            throw_fmt("Texture not found: {}\n", src);
+            THROWF("Texture not found: {}\n", src);
             return {};
         }
 
@@ -302,9 +301,9 @@ namespace {
                 for (auto& s : entry["src"]) {
                     auto name = s.as<std::string>();
                     if (name.empty())
-                        throw_fmt("Empty texture name");
+                        THROWF("Empty texture name");
                     if (this->has_tex(name))
-                        throw_fmt("Duplicated texture name: {}", name);
+                        THROWF("Duplicated texture name: {}", name);
 
                     auto& dst = textures_.emplace_back();
                     dst.name_ = std::move(name);
@@ -327,7 +326,7 @@ namespace {
         void insert(const fs::path& path) {
             const auto name = path.filename().u8string();
             if (data_.find(name) != data_.end()) {
-                throw_fmt("Duplicated file name: {}\n", name);
+                THROWF("Duplicated file name: {}\n", name);
             }
 
             data_[name] = path;
@@ -354,7 +353,7 @@ namespace {
 
             const auto content = ::read_file(path);
             if (!content)
-                throw_fmt("Failed to read file: {}\n", path.u8string());
+                THROWF("Failed to read file: {}\n", path.u8string());
 
             const auto [offset, size] = data_block_.add_std_arr(*content);
             items_block_.add_nt_str(name.c_str());
@@ -703,7 +702,7 @@ namespace dal {
         } else if (argc >= 2) {
             yam_path = "dalbatch.yml";
         } else {
-            throw_fmt("No YAML file specified");
+            THROWF("No YAML file specified");
         }
 
         const auto root_path = yam_path.parent_path();
@@ -714,7 +713,7 @@ namespace dal {
 
         std::ifstream file{ yam_path };
         if (!file.is_open())
-            throw_fmt("Failed to open file: {}\n", yam_path.u8string());
+            THROWF("Failed to open file: {}\n", yam_path.u8string());
         const auto yam = YAML::Load(file);
 
         ::WorkDef work;
@@ -734,7 +733,7 @@ namespace dal {
         for (auto& json_task : json_tasks) {
             json_task->wait_spinlock();
             if (json_task->has_failed())
-                throw_fmt("JSON task failed: {}\n", json_task->err_msg());
+                THROWF("JSON task failed: {}\n", json_task->err_msg());
 
             textures_in_use.merge(json_task->textures_in_use_);
 
@@ -755,7 +754,7 @@ namespace dal {
         for (const auto tex_name : textures_in_use) {
             const auto src_path = work.find_tex_file(tex_name, root_path);
             if (!fs::is_regular_file(src_path))
-                throw_fmt("Texture not found: {}\n", src_path.u8string());
+                THROWF("Texture not found: {}\n", src_path.u8string());
 
             const auto tex_entry = work.find_tex_entry(tex_name);
             if (tex_entry) {
@@ -773,7 +772,7 @@ namespace dal {
         for (auto& task : tex_tasks) {
             task->wait_spinlock();
             if (task->has_failed())
-                throw_fmt("Texture task failed: {}\n", task->err_msg());
+                THROWF("Texture task failed: {}\n", task->err_msg());
 
             final_files.insert(task->output_path_);
         }
@@ -781,7 +780,7 @@ namespace dal {
         for (auto& task : dmd_tasks) {
             task->wait_spinlock();
             if (task->has_failed())
-                throw_fmt("A task failed: {}\n", task->err_msg());
+                THROWF("A task failed: {}\n", task->err_msg());
 
             final_files.insert(task->output_path_);
         }
