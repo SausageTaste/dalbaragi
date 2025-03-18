@@ -600,10 +600,13 @@ namespace {
 
 
     std::optional<fs::path> find_image_path(
-        const std::vector<std::string>& paths, const std::string& img_name
+        const std::vector<std::string>& paths, std::string img_name
     ) {
         if (img_name.empty())
             return std::nullopt;
+
+        if (img_name._Starts_with("//"))
+            img_name = img_name.substr(2);
 
         const auto img_name_path = fs::u8path(img_name);
 

@@ -195,6 +195,10 @@ namespace {
             }
         }
 
+        void notify_root(const fs::path& root) {
+            texture_lookup_paths_.emplace_back(root.u8string());
+        }
+
         fs::path find_tex_file(std::string src, const fs::path& root) const {
             // Trim prefix //
             if (src._Starts_with("//")) {
@@ -482,7 +486,7 @@ namespace {
         sung::TaskStatus tick() override {
             dal::parser::flip_uv_vertically(scene_);
             dal::parser::clear_collection_info(scene_);
-            // dal::parser::reduce_indexed_vertices(scene_);
+            dal::parser::reduce_indexed_vertices(scene_);
             dal::parser::remove_duplicate_materials(scene_);
             dal::parser::merge_redundant_mesh_actors(scene_);
             dal::parser::split_by_transparency(
@@ -699,6 +703,10 @@ namespace dal {
             throw_fmt("No YAML file specified");
         }
 
+        const auto root_path = yam_path.parent_path();
+        const auto out_path = root_path / "out";
+        const auto final_path = out_path / "final";
+
         auto task_sche = sung::create_task_scheduler();
 
         std::ifstream file{ yam_path };
@@ -708,11 +716,8 @@ namespace dal {
 
         ::WorkDef work;
         work.parse(yam);
+        work.notify_root(root_path);
         // work.print_all();
-
-        const auto root_path = yam_path.parent_path();
-        const auto out_path = root_path / "out";
-        const auto final_path = out_path / "final";
 
         std::vector<std::shared_ptr<::JsonTask>> json_tasks;
         for (auto dmd_work : work.dmd()) {
