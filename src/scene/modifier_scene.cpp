@@ -139,11 +139,13 @@ namespace {
         std::vector<dalp::RenderUnit<T>>& units,
         const scene_t::Material& criterion
     ) {
+        /*
         for (auto& unit : units) {
             if (unit.material_.is_physically_same(criterion)) {
                 return unit;
             }
         }
+        */
         return units.emplace_back();
     }
 
@@ -189,7 +191,7 @@ namespace {
                         vertex.normal_ = glm::normalize(
                             actor_mat3 * src_vert.normal_
                         );
-                        dst_pair.mesh_.add_vertex(vertex);
+                        dst_pair.mesh_.append_vertex(vertex);
                     }
                 } else {
                     auto& dst_pair = ::find_or_create_render_unit_by_material(

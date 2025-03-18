@@ -306,15 +306,19 @@ namespace dal::parser {
         using VERT_TYPE = _Vertex;
 
         void add_vertex(const _Vertex& vert) {
-            for (size_t i = 0; i < this->vertices_.size(); ++i) {
-                if (vert == this->vertices_[i]) {
-                    this->indices_.push_back(i);
+            for (size_t i = 0; i < vertices_.size(); ++i) {
+                if (vert == vertices_[i]) {
+                    indices_.push_back(i);
                     return;
                 }
             }
 
-            this->indices_.push_back(this->vertices_.size());
-            this->vertices_.push_back(vert);
+            this->append_vertex(vert);
+        }
+
+        void append_vertex(const _Vertex& vert) {
+            indices_.push_back(vertices_.size());
+            vertices_.push_back(vert);
         }
 
         void concat(const TMesh_Indexed<_Vertex>& other) {

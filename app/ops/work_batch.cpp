@@ -445,7 +445,7 @@ namespace {
         sung::TaskStatus tick() override {
             dal::parser::flip_uv_vertically(scene_);
             dal::parser::clear_collection_info(scene_);
-            dal::parser::reduce_indexed_vertices(scene_);
+            // dal::parser::reduce_indexed_vertices(scene_);
             dal::parser::remove_duplicate_materials(scene_);
             dal::parser::merge_redundant_mesh_actors(scene_);
             dal::parser::split_by_transparency(
