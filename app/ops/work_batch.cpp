@@ -9,6 +9,7 @@
 #include <unordered_set>
 
 #include <spdlog/fmt/fmt.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <stb_image.h>
 #include <stb_image_write.h>
@@ -116,6 +117,32 @@ namespace {
         }
     }
 
+    bool match_pattern(
+        const std::string& filename, const std::string& pattern
+    ) {
+        size_t f = 0, p = 0;
+        size_t starPos = std::string::npos, match = 0;
+
+        while (f < filename.size()) {
+            if (p < pattern.size() &&
+                (pattern[p] == filename[f] || pattern[p] == '?')) {
+                ++p;
+                ++f;
+            } else if (p < pattern.size() && pattern[p] == '*') {
+                starPos = p++;
+                match = f;
+            } else if (starPos != std::string::npos) {
+                p = starPos + 1;
+                f = ++match;
+            } else {
+                return false;
+            }
+        }
+
+        while (p < pattern.size() && pattern[p] == '*') ++p;
+        return p == pattern.size();
+    }
+
 
     class WorkDef {
 
@@ -208,9 +235,19 @@ namespace {
             return {};
         }
 
+        const Texture* find_tex_entry(const std::string& name) {
+            for (const auto& tex : textures_) {
+                if (::match_pattern(name, tex.name_)) {
+                    return &tex;
+                }
+            }
+
+            return nullptr;
+        }
+
         bool has_tex(const std::string& name) const {
             for (const auto& tex : textures_) {
-                if (tex.name_ == name) {
+                if (::match_pattern(name, tex.name_)) {
                     return true;
                 }
             }
@@ -456,24 +493,21 @@ namespace {
             dal::parser::apply_root_transform(scene_);
 
             for (auto& m : scene_.materials_) {
-                if (work_def_.has_tex(m.albedo_map_)) {
+                if (work_def_.has_tex(m.albedo_map_))
                     m.albedo_map_ = ::replace_ext(m.albedo_map_, "ktx");
-                    SPDLOG_DEBUG("Replaced albedo map: {}", m.albedo_map_);
-                }
-                if (work_def_.has_tex(m.normal_map_)) {
+                if (work_def_.has_tex(m.normal_map_))
                     m.normal_map_ = ::replace_ext(m.normal_map_, "ktx");
-                    SPDLOG_DEBUG("Replaced normal map: {}", m.normal_map_);
-                }
-                if (work_def_.has_tex(m.metallic_map_)) {
+                if (work_def_.has_tex(m.metallic_map_))
                     m.metallic_map_ = ::replace_ext(m.metallic_map_, "ktx");
-                    SPDLOG_DEBUG("Replaced metallic map: {}", m.metallic_map_);
-                }
-                if (work_def_.has_tex(m.roughness_map_)) {
+                if (work_def_.has_tex(m.roughness_map_))
                     m.roughness_map_ = ::replace_ext(m.roughness_map_, "ktx");
-                    SPDLOG_DEBUG(
-                        "Replaced roughness map: {}", m.roughness_map_
-                    );
-                }
+
+                m.albedo_map_ = fs::u8path(m.albedo_map_).filename().u8string();
+                m.normal_map_ = fs::u8path(m.normal_map_).filename().u8string();
+                m.metallic_map_ =
+                    fs::u8path(m.metallic_map_).filename().u8string();
+                m.roughness_map_ =
+                    fs::u8path(m.roughness_map_).filename().u8string();
             }
 
             const auto model = dal::parser::convert_to_model_dmd(scene_);
@@ -543,6 +577,8 @@ namespace {
                         &channels,
                         0
                     );
+                    if (!img)
+                        return this->fail("Failed to load image");
 
                     ImageWriteContext ctx;
                     const auto res = stbi_write_png_to_func(
@@ -611,7 +647,7 @@ namespace {
 
             fs::create_directories(ktx_dir);
             if (0 != system(ktx_cmd.c_str()))
-                return this->fail("Failed KTX command");
+                return this->fail_fmt("Failed KTX '{}'", src_path.u8string());
 
             return this->success();
         }
@@ -651,6 +687,7 @@ namespace {
 namespace dal {
 
     void work_batch(int argc, char* argv[]) {
+        spdlog::set_default_logger(spdlog::stdout_color_mt("console"));
         spdlog::set_level(spdlog::level::debug);
 
         fs::path yam_path;
@@ -706,27 +743,23 @@ namespace dal {
 
         std::unordered_set<std::string> textures_copied;
         std::vector<std::shared_ptr<::TextureTask>> tex_tasks;
-        for (const auto& tex : work.tex()) {
-            if (textures_in_use.find(tex.name_) == textures_in_use.end())
-                continue;
-
-            const auto src_path = work.find_tex_file(tex.name_, root_path);
-            auto& added = tex_tasks.emplace_back();
-            added = std::make_shared<::TextureTask>(tex, src_path, out_path);
-            task_sche->add_task(added);
-            textures_copied.insert(tex.name_);
-        }
-
         ::FileList final_files;
-        for (const auto& tex : textures_in_use) {
-            if (textures_copied.find(tex) != textures_copied.end())
-                continue;
-
-            const auto src_path = work.find_tex_file(tex, root_path);
+        for (const auto tex_name : textures_in_use) {
+            const auto src_path = work.find_tex_file(tex_name, root_path);
             if (!fs::is_regular_file(src_path))
-                throw_fmt("Failed to copy texture: {}\n", src_path.u8string());
+                throw_fmt("Texture not found: {}\n", src_path.u8string());
 
-            final_files.insert(src_path);
+            const auto tex_entry = work.find_tex_entry(tex_name);
+            if (tex_entry) {
+                auto& added = tex_tasks.emplace_back();
+                added = std::make_shared<::TextureTask>(
+                    *tex_entry, src_path, out_path
+                );
+                task_sche->add_task(added);
+                textures_copied.insert(tex_name);
+            } else {
+                final_files.insert(src_path);
+            }
         }
 
         for (auto& task : tex_tasks) {
