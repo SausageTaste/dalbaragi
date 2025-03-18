@@ -289,7 +289,8 @@ namespace {
 
         auto& dmd() const { return dmd_; }
         auto& tex() const { return textures_; }
-        auto& tex_lookup_paths() const { return texture_lookup_paths_; }
+        // Texture lookup paths
+        auto& lup() const { return texture_lookup_paths_; }
         auto& bundle() const { return bundle_; }
 
     private:
@@ -491,9 +492,7 @@ namespace {
             dal::parser::reduce_indexed_vertices(scene_);
             dal::parser::remove_duplicate_materials(scene_);
             dal::parser::merge_redundant_mesh_actors(scene_);
-            dal::parser::split_by_transparency(
-                scene_, work_def_.tex_lookup_paths()
-            );
+            dal::parser::split_by_transparency(scene_, work_def_.lup());
             dal::parser::remove_empty_meshes(scene_);
             dal::parser::reduce_joints(scene_);
             dal::parser::apply_root_transform(scene_);
