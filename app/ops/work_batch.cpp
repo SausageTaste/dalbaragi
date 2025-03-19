@@ -19,6 +19,7 @@
 #include <sung/basic/byte_arr.hpp>
 #include <sung/basic/stringtool.hpp>
 #include <sung/basic/threading.hpp>
+#include <sung/basic/time.hpp>
 
 #include "daltools/bundle/bundle.hpp"
 #include "daltools/dmd/exporter.h"
@@ -145,12 +146,29 @@ namespace {
     }
 
 
+    class TimerLogger {
+
+    public:
+        template <typename... Args>
+        void log(const char* fmt, Args&&... args) {
+            auto msg = fmt::format(fmt, std::forward<Args>(args)...);
+            msg += fmt::format(" ({:.3f} sec)", timer_.check_get_elapsed());
+            SPDLOG_INFO(msg);
+        }
+
+    private:
+        sung::MonotonicRealtimeTimer timer_;
+    };
+
+
     class WorkDef {
 
     public:
         struct Dmd {
             std::string path_;
             std::string comp_method_;
+            bool detect_alpha_ = false;
+            bool merge_vertex_dups_ = false;
         };
 
         struct Bundle {
@@ -171,10 +189,7 @@ namespace {
                 const auto& data = x.second;
 
                 if (entry_name._Starts_with("dmd")) {
-                    auto& dst = dmd_.emplace_back();
-                    dst.path_ = data["path"].as<std::string>();
-                    dst.comp_method_ =
-                        data["compression_method"].as<std::string>();
+                    this->parse_dmd(data);
                 } else if (entry_name._Starts_with("bundle")) {
                     if (bundle_) {
                         THROWF("Only one bundle is allowed.");
@@ -294,6 +309,22 @@ namespace {
         auto& bundle() const { return bundle_; }
 
     private:
+        bool get_bool(const YAML::Node& yam, const std::string& key) {
+            try {
+                return yam[key].as<bool>();
+            } catch (const std::runtime_error&) {
+                return false;
+            }
+        }
+
+        void parse_dmd(const YAML::Node& yam) {
+            auto& dst = dmd_.emplace_back();
+            dst.path_ = yam["path"].as<std::string>();
+            dst.comp_method_ = yam["compression_method"].as<std::string>();
+            dst.detect_alpha_ = this->get_bool(yam, "detect_alpha");
+            dst.merge_vertex_dups_ = this->get_bool(yam, "merge_vertex_dups");
+        }
+
         void parse_texture_list(const YAML::Node& yam) {
             for (auto& entry : yam) {
                 const auto channels = entry["channels"].as<std::string>();
@@ -487,15 +518,34 @@ namespace {
             , out_dir_(out_dir) {}
 
         sung::TaskStatus tick() override {
+            TimerLogger timer;
+
             dal::parser::flip_uv_vertically(scene_);
+            timer.log("DMD UV flip");
             dal::parser::clear_collection_info(scene_);
-            dal::parser::reduce_indexed_vertices(scene_);
+            timer.log("DMD Clear collection info");
+
+            if (dmd_def_.merge_vertex_dups_) {
+                dal::parser::reduce_indexed_vertices(scene_);
+                timer.log("DMD Reduce indexed vertices");
+            }
+
             dal::parser::remove_duplicate_materials(scene_);
+            timer.log("DMD Remove duplicate materials");
             dal::parser::merge_redundant_mesh_actors(scene_);
-            dal::parser::split_by_transparency(scene_, work_def_.lup());
+            timer.log("DMD Merge redundant mesh actors");
+
+            if (dmd_def_.detect_alpha_) {
+                dal::parser::split_by_transparency(scene_, work_def_.lup());
+                timer.log("DMD Split by transparency");
+            }
+
             dal::parser::remove_empty_meshes(scene_);
+            timer.log("DMD Remove empty meshes");
             dal::parser::reduce_joints(scene_);
+            timer.log("DMD Reduce joints");
             dal::parser::apply_root_transform(scene_);
+            timer.log("DMD Apply root transform");
 
             for (auto& m : scene_.materials_) {
                 if (work_def_.has_tex(m.albedo_map_))
@@ -514,11 +564,14 @@ namespace {
                 m.roughness_map_ =
                     fs::u8path(m.roughness_map_).filename().u8string();
             }
+            timer.log("DMD Update texture paths");
 
             const auto model = dal::parser::convert_to_model_dmd(scene_);
+            timer.log("DMD Build model");
             const auto bin_built = dal::parser::build_binary_model(
                 model, deduce_comp_method(dmd_def_.comp_method_)
             );
+            timer.log("DMD Build binary data");
 
             const auto u8path = fs::u8path(dmd_def_.path_);
             output_path_ = out_dir_ / "dmd" / u8path.filename();
