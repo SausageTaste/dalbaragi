@@ -137,15 +137,22 @@ namespace {
     template <typename T>
     dalp::RenderUnit<T>& find_or_create_render_unit_by_material(
         std::vector<dalp::RenderUnit<T>>& units,
-        const scene_t::Material& criterion
+        const scene_t::Mesh& src_mesh,
+        const scene_t::Material& src_mat
     ) {
-        /*
+        constexpr auto MAX_IDX = std::numeric_limits<uint32_t>::max();
+
         for (auto& unit : units) {
-            if (unit.material_.is_physically_same(criterion)) {
-                return unit;
+            if (unit.material_.is_physically_same(src_mat)) {
+                const auto unit_size = unit.mesh_.vertices_.size();
+                const auto src_size = src_mesh.indices_.size();
+                const auto worst_size = unit_size + src_size;
+
+                if (worst_size < MAX_IDX)
+                    return unit;
             }
         }
-        */
+
         return units.emplace_back();
     }
 
@@ -175,7 +182,7 @@ namespace {
 
                 if (src_mesh->skeleton_name_.empty()) {
                     auto& dst_pair = ::find_or_create_render_unit_by_material(
-                        output.units_indexed_, *src_material
+                        output.units_indexed_, *src_mesh, *src_material
                     );
 
                     dst_pair.name_ = src_mesh->name_;
@@ -195,7 +202,7 @@ namespace {
                     }
                 } else {
                     auto& dst_pair = ::find_or_create_render_unit_by_material(
-                        output.units_indexed_joint_, *src_material
+                        output.units_indexed_joint_, *src_mesh, *src_material
                     );
 
                     dst_pair.name_ = src_mesh->name_;
@@ -227,7 +234,7 @@ namespace {
                             vertex.joint_indices_[i] = dalp::NULL_JID;
                         }
 
-                        dst_pair.mesh_.add_vertex(vertex);
+                        dst_pair.mesh_.append_vertex(vertex);
                     }
                 }
             }
