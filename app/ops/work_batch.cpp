@@ -375,6 +375,8 @@ namespace {
     class BundleBuilder {
 
     public:
+        void reserve_data(size_t size) { data_block_.reserve(size); }
+
         bool add_file(const fs::path& path) {
             const auto name = path.filename().u8string();
             if (added_names_.find(name) != added_names_.end()) {
@@ -838,7 +840,12 @@ namespace dal {
         }
 
         if (work.bundle()) {
+            size_t total_data_size = 0;
+            for (const auto& [name, path] : final_files)
+                total_data_size += fs::file_size(path);
+
             ::BundleBuilder dun_builder;
+            dun_builder.reserve_data(total_data_size);
             for (const auto& [name, path] : final_files)
                 dun_builder.add_file(path);
 
