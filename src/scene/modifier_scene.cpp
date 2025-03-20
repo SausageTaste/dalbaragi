@@ -198,7 +198,7 @@ namespace {
                         vertex.normal_ = glm::normalize(
                             actor_mat3 * src_vert.normal_
                         );
-                        dst_pair.mesh_.append_vertex(vertex);
+                        dst_pair.mesh_.add_vertex(vertex);
                     }
                 } else {
                     auto& dst_pair = ::find_or_create_render_unit_by_material(
@@ -234,7 +234,7 @@ namespace {
                             vertex.joint_indices_[i] = dalp::NULL_JID;
                         }
 
-                        dst_pair.mesh_.append_vertex(vertex);
+                        dst_pair.mesh_.add_vertex(vertex);
                     }
                 }
             }

@@ -305,16 +305,24 @@ namespace dal::parser {
 
         using VERT_TYPE = _Vertex;
 
-        void add_vertex(const _Vertex& vert) {
-            for (size_t i = 0; i < vertices_.size(); ++i) {
-                if (vert == vertices_[i]) {
-                    indices_.push_back(i);
+        void add_vertex(const _Vertex& vert, size_t look_up_count) {
+            const auto vert_count = vertices_.size();
+
+            for (size_t i = 0; i < vert_count; ++i) {
+                if (i >= look_up_count)
+                    break;
+
+                const auto idx = vert_count - i - 1;
+                if (vert == vertices_[idx]) {
+                    indices_.push_back(idx);
                     return;
                 }
             }
 
             this->append_vertex(vert);
         }
+
+        void add_vertex(const _Vertex& vert) { this->add_vertex(vert, 10000); }
 
         void append_vertex(const _Vertex& vert) {
             indices_.push_back(vertices_.size());
