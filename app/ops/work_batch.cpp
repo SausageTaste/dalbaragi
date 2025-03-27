@@ -43,6 +43,16 @@ namespace {
     using byte8 = sung::byte8;
 
 
+    std::string clean_tex_path(std::string path) {
+        if (path._Starts_with("//")) {
+            path = path.substr(2);
+        } else if (path._Starts_with("/")) {
+            path = path.substr(1);
+        }
+
+        return path;
+    }
+
     fs::path resolve_path(const fs::path& path, const fs::path& root) {
         if (path.is_absolute()) {
             return path;
@@ -215,14 +225,9 @@ namespace {
             texture_lookup_paths_.emplace_back(root.u8string());
         }
 
-        fs::path find_tex_file(std::string src, const fs::path& root) const {
-            // Trim prefix //
-            if (src._Starts_with("//")) {
-                src = src.substr(2);
-            } else if (src._Starts_with("/")) {
-                src = src.substr(1);
-            }
-
+        fs::path find_tex_file(
+            const std::string& src, const fs::path& root
+        ) const {
             for (const auto& lup : texture_lookup_paths_) {
                 if (lup.empty())
                     continue;
@@ -550,6 +555,11 @@ namespace {
             timer.log("DMD Apply root transform");
 
             for (auto& m : scene_.materials_) {
+                m.albedo_map_ = ::clean_tex_path(m.albedo_map_);
+                m.normal_map_ = ::clean_tex_path(m.normal_map_);
+                m.metallic_map_ = ::clean_tex_path(m.metallic_map_);
+                m.roughness_map_ = ::clean_tex_path(m.roughness_map_);
+
                 if (work_def_.has_tex(m.albedo_map_))
                     m.albedo_map_ = ::replace_ext(m.albedo_map_, "ktx");
                 if (work_def_.has_tex(m.normal_map_))
@@ -805,7 +815,8 @@ namespace dal {
         std::unordered_set<std::string> textures_copied;
         std::vector<std::shared_ptr<::TextureTask>> tex_tasks;
         ::FileList final_files;
-        for (const auto tex_name : textures_in_use) {
+        for (auto tex_name : textures_in_use) {
+            tex_name = ::clean_tex_path(tex_name);
             const auto src_path = work.find_tex_file(tex_name, root_path);
             if (!fs::is_regular_file(src_path))
                 THROWF("Texture not found: {}\n", src_path.u8string());
