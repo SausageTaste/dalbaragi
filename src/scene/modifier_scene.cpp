@@ -612,7 +612,7 @@ namespace {
         if (img_name.empty())
             return std::nullopt;
 
-        if (img_name._Starts_with("//"))
+        if (img_name[0] == '/' && img_name[1] == '/')
             img_name = img_name.substr(2);
 
         const auto img_name_path = fs::u8path(img_name);
