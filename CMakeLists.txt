@@ -52,6 +52,8 @@ add_library(dalbaragi_tools STATIC
     ${source_dir}/common/util.cpp
     ${source_dir}/dmd/exporter.cpp
     ${source_dir}/dmd/parser.cpp
+    ${source_dir}/dsd/importer.cpp
+    ${source_dir}/dsd/struct.cpp
     ${source_dir}/filesys/filesys.cpp
     ${source_dir}/filesys/res_mgr.cpp
     ${source_dir}/img/backend/ktx.cpp
