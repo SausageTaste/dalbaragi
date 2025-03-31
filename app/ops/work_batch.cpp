@@ -261,7 +261,9 @@ namespace {
             return {};
         }
 
-        const Texture* find_tex_entry(const std::string& name) {
+        const Texture* find_tex_entry(std::string name) {
+            name = fs::u8path(name).filename().u8string();
+
             for (const auto& tex : textures_) {
                 if (::match_pattern(name, tex.name_)) {
                     return &tex;
@@ -271,7 +273,9 @@ namespace {
             return nullptr;
         }
 
-        bool has_tex(const std::string& name) const {
+        bool has_tex(std::string name) const {
+            name = fs::u8path(name).filename().u8string();
+
             for (const auto& tex : textures_) {
                 if (::match_pattern(name, tex.name_)) {
                     return true;
