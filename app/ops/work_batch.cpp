@@ -18,10 +18,11 @@
 #include <fstream>
 #include <sung/basic/byte_arr.hpp>
 #include <sung/basic/stringtool.hpp>
-#include <sung/basic/threading.hpp>
 #include <sung/basic/time.hpp>
 
 #include "daltools/bundle/bundle.hpp"
+#include "daltools/common/err_msg_holder.hpp"
+#include "daltools/common/task_sys.hpp"
 #include "daltools/dmd/exporter.h"
 #include "daltools/json/parser.h"
 #include "daltools/scene/modifier.h"
@@ -36,6 +37,20 @@
 
 
 namespace fs = std::filesystem;
+
+
+namespace fmt {
+
+    template <>
+    struct fmt::formatter<std::filesystem::path>
+        : fmt::formatter<std::string_view> {
+        template <typename FormatContext>
+        auto format(const std::filesystem::path& p, FormatContext& ctx) const {
+            return fmt::formatter<std::string_view>::format(p.u8string(), ctx);
+        }
+    };
+
+}  // namespace fmt
 
 
 namespace {
@@ -261,7 +276,7 @@ namespace {
             return {};
         }
 
-        const Texture* find_tex_entry(std::string name) {
+        const Texture* find_tex_entry(std::string name) const {
             name = fs::u8path(name).filename().u8string();
 
             for (const auto& tex : textures_) {
@@ -386,6 +401,16 @@ namespace {
     public:
         void reserve_data(size_t size) { data_block_.reserve(size); }
 
+        bool add_data(const std::string& name, const std::vector<byte8>& data) {
+            const auto [offset, size] = data_block_.add_std_arr(data);
+            items_block_.add_nt_str(name.c_str());
+            items_block_.add_uint64(offset);
+            items_block_.add_uint64(size);
+
+            SPDLOG_INFO("Added '{}' ({})", name, sung::format_bytes(size));
+            return true;
+        }
+
         bool add_file(const fs::path& path) {
             const auto name = path.filename().u8string();
             if (added_names_.find(name) != added_names_.end()) {
@@ -398,13 +423,7 @@ namespace {
             if (!content)
                 THROWF("Failed to read file: {}\n", path.u8string());
 
-            const auto [offset, size] = data_block_.add_std_arr(*content);
-            items_block_.add_nt_str(name.c_str());
-            items_block_.add_uint64(offset);
-            items_block_.add_uint64(size);
-
-            SPDLOG_INFO("Added '{}' ({})", name, sung::format_bytes(size));
-            return true;
+            return this->add_data(name, *content);
         }
 
         std::vector<byte8> build(int comp_level) {
@@ -456,21 +475,99 @@ namespace {
     };
 
 
-    class JsonTask : public sung::IStandardLoadTask {
+    class Paths {
 
     public:
-        JsonTask(const WorkDef::Dmd& work_def_, const fs::path& root_path)
-            : work_def_(work_def_), root_path_(root_path) {}
+        explicit Paths(const fs::path& yam_path) { yam_path_ = yam_path; }
 
-        sung::TaskStatus tick() override {
-            const auto u8path = fs::u8path(work_def_.path_);
-            const auto json_path = ::resolve_path(u8path, root_path_);
+        void set(const fs::path& yam_path) { yam_path_ = yam_path; }
+
+        fs::path yam() const { return yam_path_; }
+        fs::path root() const { return yam_path_.parent_path(); }
+        fs::path out() const { return this->root() / "out"; }
+        fs::path final() const { return this->root() / "final"; }
+
+    private:
+        fs::path yam_path_;
+    };
+
+}  // namespace
+
+
+// Tasks
+namespace {
+
+    class YamlTask
+        : public enki::TaskSet
+        , public dal::ts::ErrorMsgHolder {
+
+    public:
+        YamlTask(const Paths& paths) : paths_(paths) {}
+
+        void ExecuteRange(
+            enki::TaskSetPartition range_, uint32_t threadnum_
+        ) override {
+            const auto path_str = paths_.yam().u8string();
+
+            std::ifstream file{ paths_.yam() };
+            if (!file.is_open())
+                return this->fail("Failed to open file: " + path_str);
+
+            const auto yam = YAML::Load(file);
+            if (!yam.IsDefined())
+                return this->fail("Failed to parse YAML file: " + path_str);
+
+            work_.parse(yam);
+            work_.notify_root(paths_.root());
+            // work_.print_all();
+        }
+
+        const ::WorkDef& work() const { return work_; }
+
+    private:
+        const Paths& paths_;
+        ::WorkDef work_;
+    };
+
+
+    class JsonTask
+        : public enki::TaskSet
+        , public dal::ts::ErrorMsgHolder {
+
+    public:
+        JsonTask() = default;
+        JsonTask(const JsonTask&) = delete;
+        JsonTask& operator=(const JsonTask&) = delete;
+
+        JsonTask(JsonTask&& other) noexcept {
+            std::swap(dmd_def_, other.dmd_def_);
+            std::swap(paths_, other.paths_);
+            std::swap(textures_in_use_, other.textures_in_use_);
+            std::swap(scene_, other.scene_);
+        }
+
+        JsonTask& operator=(JsonTask&& other) {
+            std::swap(dmd_def_, other.dmd_def_);
+            std::swap(paths_, other.paths_);
+            std::swap(textures_in_use_, other.textures_in_use_);
+            std::swap(scene_, other.scene_);
+            return *this;
+        }
+
+        void init(const WorkDef::Dmd& dmd_def, const Paths& paths) {
+            dmd_def_ = &dmd_def;
+            paths_ = &paths;
+        }
+
+        void ExecuteRange(
+            enki::TaskSetPartition range_, uint32_t threadnum_
+        ) override {
+            const auto u8path = fs::u8path(dmd_def_->path_);
+            const auto json_path = ::resolve_path(u8path, paths_->root());
 
             const auto json_data = ::read_file(json_path);
             if (!json_data) {
-                return this->fail(
-                    "Failed to read file: " + json_path.u8string()
-                );
+                return this->fail("Failed to read file '{}'", json_path);
             }
 
             auto bin_path = json_path;
@@ -483,9 +580,7 @@ namespace {
                 dal::parser::parse_json(scenes, *json_data);
 
             if (scenes.size() != 1)
-                return this->fail_fmt(
-                    "Invalid scene count: {}\n", scenes.size()
-                );
+                return this->fail("Invalid scene count: {}\n", scenes.size());
 
             for (auto& scene : scenes) {
                 for (auto& m : scene.materials_) {
@@ -500,35 +595,61 @@ namespace {
             return this->success();
         }
 
-        WorkDef::Dmd work_def_;
-        dal::parser::SceneIntermediate scene_;
-        std::unordered_set<std::string> textures_in_use_;
+        std::unordered_set<std::string>& tex_in_use() {
+            return textures_in_use_;
+        }
+        auto& scene() { return scene_; }
+        auto& dmd_def() const { return *dmd_def_; }
 
     private:
-        template <typename... T>
-        auto fail_fmt(fmt::format_string<T...> fmt, T&&... args) {
-            return this->fail(vformat(fmt, fmt::make_format_args(args...)));
-        }
-
-        fs::path root_path_;
+        const WorkDef::Dmd* dmd_def_;
+        const Paths* paths_;
+        std::unordered_set<std::string> textures_in_use_;
+        dal::parser::SceneIntermediate scene_;
     };
 
 
-    class DmdTask : public sung::IStandardLoadTask {
+    class DmdTask
+        : public enki::TaskSet
+        , public dal::ts::ErrorMsgHolder {
 
     public:
-        DmdTask(
+        DmdTask() = default;
+        DmdTask(const DmdTask&) = delete;
+        DmdTask& operator=(const DmdTask&) = delete;
+
+        DmdTask(DmdTask&& other) noexcept {
+            std::swap(scene_, other.scene_);
+            std::swap(work_def_, other.work_def_);
+            std::swap(dmd_def_, other.dmd_def_);
+            std::swap(out_dir_, other.out_dir_);
+            std::swap(output_path_, other.output_path_);
+        }
+
+        DmdTask& operator=(DmdTask&& other) {
+            std::swap(scene_, other.scene_);
+            std::swap(work_def_, other.work_def_);
+            std::swap(dmd_def_, other.dmd_def_);
+            std::swap(out_dir_, other.out_dir_);
+            std::swap(output_path_, other.output_path_);
+            return *this;
+        }
+
+        void init(
             dal::parser::SceneIntermediate&& scene,
             const WorkDef& work_def,
             const WorkDef::Dmd& dmd_def,
             const fs::path& out_dir
-        )
-            : scene_(std::move(scene))
-            , work_def_(work_def)
-            , dmd_def_(dmd_def)
-            , out_dir_(out_dir) {}
+        ) {
+            scene_ = std::move(scene);
+            work_def_ = &work_def;
+            dmd_def_ = &dmd_def;
+            out_dir_ = out_dir;
+        }
 
-        sung::TaskStatus tick() override {
+        void ExecuteRange(
+            enki::TaskSetPartition range_, uint32_t threadnum_
+        ) override {
             TimerLogger timer;
 
             dal::parser::flip_uv_vertically(scene_);
@@ -536,7 +657,7 @@ namespace {
             dal::parser::clear_collection_info(scene_);
             timer.log("DMD Clear collection info");
 
-            if (dmd_def_.merge_vertex_dups_) {
+            if (dmd_def_->merge_vertex_dups_) {
                 dal::parser::reduce_indexed_vertices(scene_);
                 timer.log("DMD Reduce indexed vertices");
             }
@@ -546,8 +667,8 @@ namespace {
             dal::parser::merge_redundant_mesh_actors(scene_);
             timer.log("DMD Merge redundant mesh actors");
 
-            if (dmd_def_.detect_alpha_) {
-                dal::parser::split_by_transparency(scene_, work_def_.lup());
+            if (dmd_def_->detect_alpha_) {
+                dal::parser::split_by_transparency(scene_, work_def_->lup());
                 timer.log("DMD Split by transparency");
             }
 
@@ -564,13 +685,13 @@ namespace {
                 m.metallic_map_ = ::clean_tex_path(m.metallic_map_);
                 m.roughness_map_ = ::clean_tex_path(m.roughness_map_);
 
-                if (work_def_.has_tex(m.albedo_map_))
+                if (work_def_->has_tex(m.albedo_map_))
                     m.albedo_map_ = ::replace_ext(m.albedo_map_, "ktx");
-                if (work_def_.has_tex(m.normal_map_))
+                if (work_def_->has_tex(m.normal_map_))
                     m.normal_map_ = ::replace_ext(m.normal_map_, "ktx");
-                if (work_def_.has_tex(m.metallic_map_))
+                if (work_def_->has_tex(m.metallic_map_))
                     m.metallic_map_ = ::replace_ext(m.metallic_map_, "ktx");
-                if (work_def_.has_tex(m.roughness_map_))
+                if (work_def_->has_tex(m.roughness_map_))
                     m.roughness_map_ = ::replace_ext(m.roughness_map_, "ktx");
 
                 m.albedo_map_ = fs::u8path(m.albedo_map_).filename().u8string();
@@ -585,11 +706,11 @@ namespace {
             const auto model = dal::parser::convert_to_model_dmd(scene_);
             timer.log("DMD Build model");
             const auto bin_built = dal::parser::build_binary_model(
-                model, deduce_comp_method(dmd_def_.comp_method_)
+                model, deduce_comp_method(dmd_def_->comp_method_)
             );
             timer.log("DMD Build binary data");
 
-            const auto u8path = fs::u8path(dmd_def_.path_);
+            const auto u8path = fs::u8path(dmd_def_->path_);
             output_path_ = out_dir_ / "dmd" / u8path.filename();
             output_path_.replace_extension(".dmd");
             if (!::write_file(output_path_, *bin_built))
@@ -600,27 +721,54 @@ namespace {
             return this->success();
         }
 
-        fs::path output_path_;
+        const fs::path& output_path() const { return output_path_; }
 
     private:
+        const WorkDef* work_def_;
+        const WorkDef::Dmd* dmd_def_;
         dal::parser::SceneIntermediate scene_;
-        const WorkDef& work_def_;
-        WorkDef::Dmd dmd_def_;
         fs::path out_dir_;
+        fs::path output_path_;
     };
 
 
-    class TextureTask : public sung::IStandardLoadTask {
+    class TextureTask
+        : public enki::TaskSet
+        , public dal::ts::ErrorMsgHolder {
 
     public:
-        TextureTask(
+        TextureTask() = default;
+        TextureTask(const TextureTask&) = delete;
+        TextureTask& operator=(const TextureTask&) = delete;
+
+        TextureTask(TextureTask&& other) noexcept {
+            std::swap(work_def_, other.work_def_);
+            std::swap(file_path_, other.file_path_);
+            std::swap(out_dir_, other.out_dir_);
+            std::swap(output_path_, other.output_path_);
+        }
+
+        TextureTask& operator=(TextureTask&& other) {
+            std::swap(work_def_, other.work_def_);
+            std::swap(file_path_, other.file_path_);
+            std::swap(out_dir_, other.out_dir_);
+            std::swap(output_path_, other.output_path_);
+            return *this;
+        }
+
+        void init(
             const WorkDef::Texture& work_def,
             const fs::path& file_path,
             const fs::path& out_dir
-        )
-            : work_def_(work_def), file_path_(file_path), out_dir_(out_dir) {}
+        ) {
+            work_def_ = &work_def;
+            file_path_ = file_path;
+            out_dir_ = out_dir;
+        }
 
-        sung::TaskStatus tick() override {
+        void ExecuteRange(
+            enki::TaskSetPartition range_, uint32_t threadnum_
+        ) override {
             const auto ktx_dir = out_dir_ / "ktx";
             output_path_ = ktx_dir / file_path_.filename();
             output_path_.replace_extension(".ktx");
@@ -684,20 +832,18 @@ namespace {
             ktx_cmd += "ktx create --encode uastc --generate-mipmap";
 
             std::string format_prefix;
-            if (work_def_.channel_ == "RGBA")
+            if (work_def_->channel_ == "RGBA")
                 format_prefix = "R8G8B8A8";
-            else if (work_def_.channel_ == "RGB")
+            else if (work_def_->channel_ == "RGB")
                 format_prefix = "R8G8B8";
-            else if (work_def_.channel_ == "RG")
+            else if (work_def_->channel_ == "RG")
                 format_prefix = "R8G8";
-            else if (work_def_.channel_ == "R")
+            else if (work_def_->channel_ == "R")
                 format_prefix = "R8";
             else
-                return this->fail_fmt(
-                    "Invalid channel ({})", work_def_.channel_
-                );
+                return this->fail("Invalid channel ({})", work_def_->channel_);
 
-            if (work_def_.srgb_) {
+            if (work_def_->srgb_) {
                 ktx_cmd += fmt::format(" --format {}_SRGB", format_prefix);
                 ktx_cmd += " --assign-oetf srgb";
                 ktx_cmd += " --convert-oetf srgb";
@@ -721,22 +867,17 @@ namespace {
 
             fs::create_directories(ktx_dir);
             if (0 != system(ktx_cmd.c_str()))
-                return this->fail_fmt("Failed KTX '{}'", src_path.u8string());
+                return this->fail("Failed KTX '{}'", src_path);
 
             return this->success();
         }
 
-        fs::path output_path_;
+        const fs::path& output_path() const { return output_path_; }
 
     private:
         struct ImageWriteContext {
             std::vector<byte8> data_;
         };
-
-        template <typename... T>
-        auto fail_fmt(fmt::format_string<T...> fmt, T&&... args) {
-            return this->fail(vformat(fmt, fmt::make_format_args(args...)));
-        }
 
         static void write_img(void* context, void* data, int size) {
             auto& ctx = *reinterpret_cast<ImageWriteContext*>(context);
@@ -750,9 +891,57 @@ namespace {
             return ext == ".png";
         }
 
-        WorkDef::Texture work_def_;
+        const WorkDef::Texture* work_def_;
         fs::path file_path_;
         fs::path out_dir_;
+        fs::path output_path_;
+    };
+
+
+    class FileLoadTask
+        : public enki::TaskSet
+        , public dal::ts::ErrorMsgHolder {
+
+    public:
+        FileLoadTask() = default;
+        FileLoadTask(const FileLoadTask&) = delete;
+        FileLoadTask& operator=(const FileLoadTask&) = delete;
+
+        FileLoadTask(FileLoadTask&& other) noexcept {
+            std::swap(file_path_, other.file_path_);
+            std::swap(data_, other.data_);
+        }
+
+        FileLoadTask& operator=(FileLoadTask&& other) {
+            std::swap(file_path_, other.file_path_);
+            std::swap(data_, other.data_);
+            return *this;
+        }
+
+        void init(const fs::path& file_path) { file_path_ = file_path; }
+
+        void ExecuteRange(
+            enki::TaskSetPartition range_, uint32_t threadnum_
+        ) override {
+            if (!::read_file(file_path_, data_))
+                return this->fail("Failed to read file: {}\n", file_path_);
+
+            return this->success();
+        }
+
+        void free_mem() {
+            data_.clear();
+            data_.shrink_to_fit();
+        }
+
+        auto& path() const { return file_path_; }
+        auto& data() const { return data_; }
+        auto size() const { return data_.size(); }
+        auto name() const { return file_path_.filename().u8string(); }
+
+    private:
+        fs::path file_path_;
+        std::vector<byte8> data_;
     };
 
 }  // namespace
@@ -773,100 +962,110 @@ namespace dal {
             THROWF("No YAML file specified");
         }
 
-        const auto root_path = yam_path.parent_path();
-        const auto out_path = root_path / "out";
-        const auto final_path = out_path / "final";
+        auto& ts = dal::ts::inst();
+        ::Paths paths{ yam_path };
+        ::YamlTask yam_task(paths);
+        ts.AddTaskSetToPipe(&yam_task);
+        ts.WaitforAll();
+        if (yam_task.has_failed())
+            THROWF("YAML task failed: {}\n", yam_task.err_msg());
 
-        auto task_sche = sung::create_task_scheduler();
-
-        std::ifstream file{ yam_path };
-        if (!file.is_open())
-            THROWF("Failed to open file: {}\n", yam_path.u8string());
-        const auto yam = YAML::Load(file);
-
-        ::WorkDef work;
-        work.parse(yam);
-        work.notify_root(root_path);
-        // work.print_all();
-
-        std::vector<std::shared_ptr<::JsonTask>> json_tasks;
-        for (auto dmd_work : work.dmd()) {
-            auto& added = json_tasks.emplace_back();
-            added = std::make_shared<::JsonTask>(dmd_work, root_path);
-            task_sche->add_task(added);
+        std::vector<::JsonTask> json_tasks;
+        for (auto& dmd : yam_task.work().dmd()) {
+            auto& task = json_tasks.emplace_back();
+            task.init(dmd, paths);
         }
+        for (auto& json_task : json_tasks) {
+            ts.AddTaskSetToPipe(&json_task);
+        }
+        ts.WaitforAll();
 
         std::unordered_set<std::string> textures_in_use;
-        std::vector<std::shared_ptr<::DmdTask>> dmd_tasks;
+        std::vector<::DmdTask> dmd_tasks;
         for (auto& json_task : json_tasks) {
-            json_task->wait_spinlock();
-            if (json_task->has_failed())
-                THROWF("JSON task failed: {}\n", json_task->err_msg());
+            if (json_task.has_failed())
+                THROWF("JSON task failed: {}\n", json_task.err_msg());
 
-            textures_in_use.merge(json_task->textures_in_use_);
+            textures_in_use.merge(json_task.tex_in_use());
 
-            auto& added = dmd_tasks.emplace_back();
-            added = std::make_shared<::DmdTask>(
-                std::move(json_task->scene_),
-                work,
-                json_task->work_def_,
-                out_path
+            auto& dmd_task = dmd_tasks.emplace_back();
+            dmd_task.init(
+                std::move(json_task.scene()),
+                yam_task.work(),
+                json_task.dmd_def(),
+                paths.out()
             );
-            task_sche->add_task(added);
+        }
+        for (auto& dmd_task : dmd_tasks) {
+            ts.AddTaskSetToPipe(&dmd_task);
         }
         textures_in_use.erase("");
 
         std::unordered_set<std::string> textures_copied;
-        std::vector<std::shared_ptr<::TextureTask>> tex_tasks;
+        std::vector<::TextureTask> tex_tasks;
         ::FileList final_files;
         for (auto tex_name : textures_in_use) {
             tex_name = ::clean_tex_path(tex_name);
-            const auto src_path = work.find_tex_file(tex_name, root_path);
+            const auto src_path = yam_task.work().find_tex_file(
+                tex_name, paths.root()
+            );
             if (!fs::is_regular_file(src_path))
                 THROWF("Texture not found: {}\n", src_path.u8string());
 
-            const auto tex_entry = work.find_tex_entry(tex_name);
+            const auto tex_entry = yam_task.work().find_tex_entry(tex_name);
             if (tex_entry) {
-                auto& added = tex_tasks.emplace_back();
-                added = std::make_shared<::TextureTask>(
-                    *tex_entry, src_path, out_path
-                );
-                task_sche->add_task(added);
+                auto& tex_task = tex_tasks.emplace_back();
+                tex_task.init(*tex_entry, src_path, paths.out());
                 textures_copied.insert(tex_name);
             } else {
                 final_files.insert(src_path);
             }
         }
+        for (auto& tex_task : tex_tasks) {
+            ts.AddTaskSetToPipe(&tex_task);
+        }
+
+        ts.WaitforAll();
 
         for (auto& task : tex_tasks) {
-            task->wait_spinlock();
-            if (task->has_failed())
-                THROWF("Texture task failed: {}\n", task->err_msg());
-
-            final_files.insert(task->output_path_);
+            if (task.has_failed())
+                THROWF("Texture task failed: {}", task.err_msg());
+            final_files.insert(task.output_path());
         }
 
         for (auto& task : dmd_tasks) {
-            task->wait_spinlock();
-            if (task->has_failed())
-                THROWF("A task failed: {}\n", task->err_msg());
-
-            final_files.insert(task->output_path_);
+            if (task.has_failed())
+                THROWF("DMD task failed: {}", task.err_msg());
+            final_files.insert(task.output_path());
         }
 
-        if (work.bundle()) {
+        if (yam_task.work().bundle()) {
+            std::vector<::FileLoadTask> file_tasks;
+            for (const auto& [name, path] : final_files) {
+                auto& task = file_tasks.emplace_back();
+                task.init(path);
+            }
+            for (auto& task : file_tasks) {
+                ts.AddTaskSetToPipe(&task);
+            }
+            ts.WaitforAll();
+
             size_t total_data_size = 0;
-            for (const auto& [name, path] : final_files)
-                total_data_size += fs::file_size(path);
+            for (const auto& task : file_tasks) {
+                if (task.has_failed())
+                    THROWF("File load task failed: {}", task.err_msg());
+                total_data_size += task.size();
+            }
 
             ::BundleBuilder dun_builder;
             dun_builder.reserve_data(total_data_size);
-            for (const auto& [name, path] : final_files)
-                dun_builder.add_file(path);
+            for (const auto& task : file_tasks)
+                dun_builder.add_data(task.name(), task.data());
 
-            const auto comp_level = work.bundle()->comp_level_;
+            const auto comp_level = yam_task.work().bundle()->comp_level_;
             const auto bin_data = dun_builder.build(comp_level);
-            const auto dun_path = final_path / work.bundle()->name_;
+            const auto dun_path = paths.final() /
+                                  yam_task.work().bundle()->name_;
             ::write_file(dun_path, bin_data);
 
             SPDLOG_INFO(
@@ -876,8 +1075,8 @@ namespace dal {
             );
         } else {
             for (const auto& [name, path] : final_files) {
-                const auto dst_path = final_path / path.filename();
-                fs::create_directories(final_path);
+                const auto dst_path = paths.final() / path.filename();
+                fs::create_directories(paths.final());
                 fs::copy_file(
                     path, dst_path, fs::copy_options::overwrite_existing
                 );

@@ -7,6 +7,7 @@
         "aklomp-base64",
         "argparse",
         "brotli",
+        "enkits",
         "glm",
         "gtest",
         "nlohmann-json",

@@ -32,6 +32,7 @@ endif()
 
 find_package(argparse CONFIG REQUIRED)
 find_package(base64 CONFIG REQUIRED)
+find_package(enkiTS CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
@@ -49,6 +50,8 @@ add_library(dalbaragi_tools STATIC
     ${source_dir}/bundle/repo.cpp
     ${source_dir}/common/byte_tool.cpp
     ${source_dir}/common/compression.cpp
+    ${source_dir}/common/err_msg_holder.cpp
+    ${source_dir}/common/task_sys.cpp
     ${source_dir}/common/util.cpp
     ${source_dir}/dmd/exporter.cpp
     ${source_dir}/dmd/parser.cpp
@@ -78,6 +81,7 @@ add_library(dalbaragi::dalbaragi_tools ALIAS dalbaragi_tools)
 
 target_link_libraries(dalbaragi_tools PUBLIC
     aklomp::base64
+    enkiTS::enkiTS
     glm::glm
     KTX::ktx
     nlohmann_json::nlohmann_json
