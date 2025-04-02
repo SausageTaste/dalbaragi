@@ -402,6 +402,8 @@ namespace {
         void reserve_data(size_t size) { data_block_.reserve(size); }
 
         bool add_data(const std::string& name, const std::vector<byte8>& data) {
+            added_names_.insert(name);
+
             const auto [offset, size] = data_block_.add_std_arr(data);
             items_block_.add_nt_str(name.c_str());
             items_block_.add_uint64(offset);
@@ -485,7 +487,7 @@ namespace {
         fs::path yam() const { return yam_path_; }
         fs::path root() const { return yam_path_.parent_path(); }
         fs::path out() const { return this->root() / "out"; }
-        fs::path final() const { return this->root() / "final"; }
+        fs::path final() const { return this->out() / "final"; }
 
     private:
         fs::path yam_path_;
