@@ -17,11 +17,11 @@ namespace {
 }  // namespace
 
 
-namespace dal::ts {
+namespace dal {
 
-    enki::TaskScheduler& inst() {
+    enki::TaskScheduler& tasker() {
         static TaskScheRaii inst;
         return inst.get();
     }
 
-}  // namespace dal::ts
+}  // namespace dal
