@@ -964,7 +964,7 @@ namespace dal {
             THROWF("No YAML file specified");
         }
 
-        auto& ts = dal::ts::inst();
+        auto& ts = dal::tasker();
         ::Paths paths{ yam_path };
         ::YamlTask yam_task(paths);
         ts.AddTaskSetToPipe(&yam_task);
