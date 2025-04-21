@@ -818,7 +818,7 @@ namespace {
                                               dal::vec_cast(tc1),
                                               dal::vec_cast(tc2) };
 
-            sung::AABB2<float> aabb;
+            sung::Aabb2D<float> aabb;
             aabb.set(tc0.x, tc0.y);
             aabb.expand_to_span(tc1.x, tc1.y);
             aabb.expand_to_span(tc2.x, tc2.y);
@@ -858,7 +858,7 @@ namespace {
                                               dal::vec_cast(tc1),
                                               dal::vec_cast(tc2) };
 
-            sung::AABB2<float> aabb;
+            sung::Aabb2D<float> aabb;
             aabb.set(tc0.x, tc0.y);
             aabb.expand_to_span(tc1.x, tc1.y);
             aabb.expand_to_span(tc2.x, tc2.y);
