@@ -252,7 +252,7 @@ namespace {
                     THROWF("Texture lookup path is not a directory: {}\n", lup);
                 }
 
-                const auto tex_path = lup_resolved / src;
+                const auto tex_path = lup_resolved / fs::u8path(src);
                 if (fs::exists(tex_path)) {
                     return tex_path;
                 }
