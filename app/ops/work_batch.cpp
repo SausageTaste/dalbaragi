@@ -58,6 +58,16 @@ namespace {
     using byte8 = sung::byte8;
 
 
+    fs::path find_yml_path(int argc, char* argv[]) {
+        if (argc >= 3) {
+            return fs::u8path(argv[2]);
+        } else if (argc >= 2) {
+            return "dalbatch.yml";
+        } else {
+            THROWF("No YAML file specified");
+        }
+    }
+
     std::string clean_tex_path(std::string path) {
         if (path._Starts_with("//")) {
             path = path.substr(2);
@@ -455,7 +465,8 @@ namespace {
                 static_cast<double>(data_info.second) / data_block_.size()
             );
 
-            auto& header = *reinterpret_cast<dal::BundleHeader*>(combined.data()
+            auto& header = *reinterpret_cast<dal::BundleHeader*>(
+                combined.data()
             );
             header.init();
             header.set_items_info(
@@ -955,18 +966,10 @@ namespace dal {
         spdlog::set_default_logger(spdlog::stdout_color_mt("console"));
         spdlog::set_level(spdlog::level::debug);
 
-        fs::path yam_path;
-        if (argc >= 3) {
-            yam_path = fs::u8path(argv[2]);
-        } else if (argc >= 2) {
-            yam_path = "dalbatch.yml";
-        } else {
-            THROWF("No YAML file specified");
-        }
+        ::Paths paths{ find_yml_path(argc, argv) };
+        ::YamlTask yam_task(paths);
 
         auto& ts = dal::tasker();
-        ::Paths paths{ yam_path };
-        ::YamlTask yam_task(paths);
         ts.AddTaskSetToPipe(&yam_task);
         ts.WaitforAll();
         if (yam_task.has_failed())
