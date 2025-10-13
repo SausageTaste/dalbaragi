@@ -65,6 +65,7 @@ add_library(dalbaragi_tools STATIC
     ${source_dir}/img/backend/stb.cpp
     ${source_dir}/img/img.cpp
     ${source_dir}/json/parser.cpp
+    ${source_dir}/scene/mesh_opt.cpp
     ${source_dir}/scene/modifier_scene.cpp
     ${source_dir}/scene/modifier.cpp
     ${source_dir}/scene/struct.cpp

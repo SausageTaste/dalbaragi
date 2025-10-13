@@ -25,6 +25,7 @@
 #include "daltools/common/task_sys.hpp"
 #include "daltools/dmd/exporter.h"
 #include "daltools/json/parser.h"
+#include "daltools/scene/mesh_opt.hpp"
 #include "daltools/scene/modifier.h"
 
 
@@ -691,6 +692,10 @@ namespace {
             timer.log("DMD Reduce joints");
             dal::parser::apply_root_transform(scene_);
             timer.log("DMD Apply root transform");
+
+            for (auto& mesh : scene_.meshes_) {
+                dal::optimize_vertex_cache(mesh);
+            }
 
             for (auto& m : scene_.materials_) {
                 m.albedo_map_ = ::clean_tex_path(m.albedo_map_);
