@@ -3,6 +3,35 @@
 #include <stdexcept>
 
 
+namespace {
+
+    bool are_similar(float lhs, float rhs, float epsilon) {
+        return std::abs(lhs - rhs) <= epsilon;
+    }
+
+    bool are_similar(const glm::vec2& lhs, const glm::vec2& rhs, float eps) {
+        if (!are_similar(lhs.x, rhs.x, eps))
+            return false;
+        if (!are_similar(lhs.y, rhs.y, eps))
+            return false;
+
+        return true;
+    }
+
+    bool are_similar(const glm::vec3& lhs, const glm::vec3& rhs, float eps) {
+        if (!are_similar(lhs.x, rhs.x, eps))
+            return false;
+        if (!are_similar(lhs.y, rhs.y, eps))
+            return false;
+        if (!are_similar(lhs.z, rhs.z, eps))
+            return false;
+
+        return true;
+    }
+
+}  // namespace
+
+
 namespace dal::parser {
 
     bool Vertex::is_equal(const Vertex& other) const {
@@ -98,7 +127,7 @@ namespace dal::parser {
     }
 
 
-    bool scene_t::Vertex::are_same(const scene_t::Vertex& other) {
+    bool scene_t::Vertex::are_same(const scene_t::Vertex& other) const {
         if (this->pos_ != other.pos_)
             return false;
         if (this->normal_ != other.normal_)
@@ -123,11 +152,38 @@ namespace dal::parser {
         return true;
     }
 
+    bool scene_t::Vertex::are_similar(const scene_t::Vertex& rhs) const {
+        constexpr auto EPSILON = 1e-4f;
+
+        if (!::are_similar(this->pos_, rhs.pos_, EPSILON))
+            return false;
+        if (!::are_similar(this->normal_, rhs.normal_, EPSILON))
+            return false;
+        if (!::are_similar(this->uv_, rhs.uv_, EPSILON))
+            return false;
+
+        if (this->joints_.size() != rhs.joints_.size())
+            return false;
+
+        const auto joint_count = this->joints_.size();
+        for (size_t i = 0; i < joint_count; ++i) {
+            auto& j0 = this->joints_[i];
+            auto& j1 = rhs.joints_[i];
+
+            if (j0.index_ != j1.index_)
+                return false;
+            if (!::are_similar(j0.weight_, j1.weight_, EPSILON))
+                return false;
+        }
+
+        return true;
+    }
+
 
     void scene_t::Mesh::add_vertex(const scene_t::Vertex& vertex) {
         const auto vert_size = this->vertices_.size();
         for (size_t i = 0; i < vert_size; ++i) {
-            if (this->vertices_[i].are_same(vertex)) {
+            if (this->vertices_[i].are_similar(vertex)) {
                 this->indices_.push_back(i);
                 return;
             }
@@ -158,7 +214,8 @@ namespace dal::parser {
         return true;
     }
 
-    bool scene_t::Material::is_physically_same(const scene_t::Material& other
+    bool scene_t::Material::is_physically_same(
+        const scene_t::Material& other
     ) const {
         if (this->roughness_ != other.roughness_)
             return false;
@@ -180,7 +237,8 @@ namespace dal::parser {
     }
 
 
-    jointID_t scene_t::Skeleton::find_index_by_name(const std::string& name
+    jointID_t scene_t::Skeleton::find_index_by_name(
+        const std::string& name
     ) const {
         const auto size = static_cast<jointID_t>(this->joints_.size());
         for (jointID_t i = 0; i < size; ++i) {
@@ -266,7 +324,8 @@ namespace dal::parser {
         return 0.f != max_value ? max_value : 1.f;
     }
 
-    jointID_t scene_t::Animation::find_index_by_name(const std::string& name
+    jointID_t scene_t::Animation::find_index_by_name(
+        const std::string& name
     ) const {
         const auto size = static_cast<jointID_t>(this->joints_.size());
         for (jointID_t i = 0; i < size; ++i) {
@@ -307,7 +366,8 @@ namespace dal::parser {
         return nullptr;
     }
 
-    const scene_t::Mesh* scene_t::find_mesh_by_name(const std::string& name
+    const scene_t::Mesh* scene_t::find_mesh_by_name(
+        const std::string& name
     ) const {
         for (auto& mesh : this->meshes_) {
             if (mesh.name_ == name) {
@@ -342,7 +402,8 @@ namespace dal::parser {
         return nullptr;
     }
 
-    const scene_t::IActor* scene_t::find_actor_by_name(const std::string& name
+    const scene_t::IActor* scene_t::find_actor_by_name(
+        const std::string& name
     ) const {
         for (auto& x : this->mesh_actors_)
             if (x.name_ == name)
@@ -363,7 +424,8 @@ namespace dal::parser {
         return nullptr;
     }
 
-    glm::mat4 scene_t::make_hierarchy_transform(const scene_t::IActor& actor
+    glm::mat4 scene_t::make_hierarchy_transform(
+        const scene_t::IActor& actor
     ) const {
         glm::mat4 output = actor.transform_.make_mat4();
         const IActor* cur_actor = &actor;

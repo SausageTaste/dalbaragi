@@ -75,7 +75,8 @@ namespace dal::parser {
             std::vector<VertexJointPair> joints_;
 
         public:
-            bool are_same(const Vertex& other);
+            bool are_same(const Vertex& other) const;
+            bool are_similar(const Vertex& rhs) const;
         };
 
 
