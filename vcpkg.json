@@ -10,6 +10,7 @@
         "enkits",
         "glm",
         "gtest",
+        "meshoptimizer",
         "nlohmann-json",
         "spdlog",
         "stb",

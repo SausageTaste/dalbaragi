@@ -35,12 +35,14 @@ find_package(base64 CONFIG REQUIRED)
 find_package(enkiTS CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
+find_package(meshoptimizer CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(Stb MODULE REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
+
 
 # Define project library
 # ----------------------------------------------------------------------------------
@@ -84,6 +86,7 @@ target_link_libraries(dalbaragi_tools PUBLIC
     enkiTS::enkiTS
     glm::glm
     KTX::ktx
+    meshoptimizer::meshoptimizer
     nlohmann_json::nlohmann_json
     spdlog::spdlog
     sungtools::sungtools_basic
