@@ -74,7 +74,9 @@ namespace {
         std::vector<std::string> tex_lookup_paths{ src_path.u8string() };
 
         for (auto& scene : scenes) {
-            flip_uv_vertically(scene);
+            for (auto& mesh : scene.meshes_) {
+                flip_uv_vertically(mesh);
+            }
             clear_collection_info(scene);
             optimize_scene(scene, tex_lookup_paths);
         }

@@ -666,15 +666,8 @@ namespace {
         ) override {
             TimerLogger timer;
 
-            dal::parser::flip_uv_vertically(scene_);
-            timer.log("DMD UV flip");
             dal::parser::clear_collection_info(scene_);
             timer.log("DMD Clear collection info");
-
-            if (dmd_def_->merge_vertex_dups_) {
-                dal::parser::reduce_indexed_vertices(scene_);
-                timer.log("DMD Reduce indexed vertices");
-            }
 
             dal::parser::remove_duplicate_materials(scene_);
             timer.log("DMD Remove duplicate materials");
@@ -694,30 +687,16 @@ namespace {
             timer.log("DMD Apply root transform");
 
             for (auto& mesh : scene_.meshes_) {
+                if (dmd_def_->merge_vertex_dups_)
+                    dal::parser::reduce_indexed_vertices(mesh);
+
+                dal::parser::flip_uv_vertically(mesh);
                 dal::optimize_vertex_cache(mesh);
             }
+            timer.log("DMD Per mesh operations");
 
             for (auto& m : scene_.materials_) {
-                m.albedo_map_ = ::clean_tex_path(m.albedo_map_);
-                m.normal_map_ = ::clean_tex_path(m.normal_map_);
-                m.metallic_map_ = ::clean_tex_path(m.metallic_map_);
-                m.roughness_map_ = ::clean_tex_path(m.roughness_map_);
-
-                if (work_def_->has_tex(m.albedo_map_))
-                    m.albedo_map_ = ::replace_ext(m.albedo_map_, "ktx");
-                if (work_def_->has_tex(m.normal_map_))
-                    m.normal_map_ = ::replace_ext(m.normal_map_, "ktx");
-                if (work_def_->has_tex(m.metallic_map_))
-                    m.metallic_map_ = ::replace_ext(m.metallic_map_, "ktx");
-                if (work_def_->has_tex(m.roughness_map_))
-                    m.roughness_map_ = ::replace_ext(m.roughness_map_, "ktx");
-
-                m.albedo_map_ = fs::u8path(m.albedo_map_).filename().u8string();
-                m.normal_map_ = fs::u8path(m.normal_map_).filename().u8string();
-                m.metallic_map_ =
-                    fs::u8path(m.metallic_map_).filename().u8string();
-                m.roughness_map_ =
-                    fs::u8path(m.roughness_map_).filename().u8string();
+                clean_tex_paths(m);
             }
             timer.log("DMD Update texture paths");
 
@@ -742,6 +721,28 @@ namespace {
         const fs::path& output_path() const { return output_path_; }
 
     private:
+        void clean_tex_paths(dal::parser::SceneIntermediate::Material& m) {
+            m.albedo_map_ = ::clean_tex_path(m.albedo_map_);
+            m.normal_map_ = ::clean_tex_path(m.normal_map_);
+            m.metallic_map_ = ::clean_tex_path(m.metallic_map_);
+            m.roughness_map_ = ::clean_tex_path(m.roughness_map_);
+
+            if (work_def_->has_tex(m.albedo_map_))
+                m.albedo_map_ = ::replace_ext(m.albedo_map_, "ktx");
+            if (work_def_->has_tex(m.normal_map_))
+                m.normal_map_ = ::replace_ext(m.normal_map_, "ktx");
+            if (work_def_->has_tex(m.metallic_map_))
+                m.metallic_map_ = ::replace_ext(m.metallic_map_, "ktx");
+            if (work_def_->has_tex(m.roughness_map_))
+                m.roughness_map_ = ::replace_ext(m.roughness_map_, "ktx");
+
+            m.albedo_map_ = fs::u8path(m.albedo_map_).filename().u8string();
+            m.normal_map_ = fs::u8path(m.normal_map_).filename().u8string();
+            m.metallic_map_ = fs::u8path(m.metallic_map_).filename().u8string();
+            m.roughness_map_ =
+                fs::u8path(m.roughness_map_).filename().u8string();
+        }
+
         const WorkDef* work_def_;
         const WorkDef::Dmd* dmd_def_;
         dal::parser::SceneIntermediate scene_;

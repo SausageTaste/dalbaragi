@@ -37,7 +37,7 @@ namespace dal::parser {
 
     void apply_root_transform(SceneIntermediate& scene);
 
-    void reduce_indexed_vertices(SceneIntermediate& scene);
+    void reduce_indexed_vertices(SceneIntermediate::Mesh& mesh);
 
     void remove_duplicate_materials(SceneIntermediate& scene);
 
@@ -56,7 +56,9 @@ namespace dal::parser {
         SceneIntermediate& scene,
         const std::vector<std::string>& tex_lookup_paths
     ) {
-        reduce_indexed_vertices(scene);
+        for (auto& mesh : scene.meshes_) {
+            reduce_indexed_vertices(mesh);
+        }
         remove_duplicate_materials(scene);
         merge_redundant_mesh_actors(scene);
         split_by_transparency(scene, tex_lookup_paths);
@@ -67,7 +69,7 @@ namespace dal::parser {
 
     // Modify
 
-    void flip_uv_vertically(SceneIntermediate& scene);
+    void flip_uv_vertically(SceneIntermediate::Mesh& mesh);
 
     void clear_collection_info(SceneIntermediate& scene);
 

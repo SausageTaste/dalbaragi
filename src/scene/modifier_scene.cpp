@@ -976,7 +976,8 @@ namespace dal::parser {
                     new_rpair.material_name_ += ::TRANSP_SUFFIX;
 
                     assert(scene.find_mesh_by_name(new_rpair.mesh_name_));
-                    assert(scene.find_material_by_name(new_rpair.material_name_)
+                    assert(
+                        scene.find_material_by_name(new_rpair.material_name_)
                     );
                 }
             }
@@ -1041,15 +1042,13 @@ namespace dal::parser {
         scene.root_transform_ = glm::mat4{ 1 };
     }
 
-    void reduce_indexed_vertices(SceneIntermediate& scene) {
-        for (auto& mesh : scene.meshes_) {
-            scene_t::Mesh builder;
-            for (auto& index : mesh.indices_)
-                builder.add_vertex(mesh.vertices_[index]);
+    void reduce_indexed_vertices(SceneIntermediate::Mesh& mesh) {
+        scene_t::Mesh builder;
+        for (auto& index : mesh.indices_)
+            builder.add_vertex(mesh.vertices_[index]);
 
-            std::swap(mesh.vertices_, builder.vertices_);
-            std::swap(mesh.indices_, builder.indices_);
-        }
+        std::swap(mesh.vertices_, builder.vertices_);
+        std::swap(mesh.indices_, builder.indices_);
     }
 
     void remove_duplicate_materials(SceneIntermediate& scene) {
@@ -1176,11 +1175,9 @@ namespace dal::parser {
 
     // Modify
 
-    void flip_uv_vertically(SceneIntermediate& scene) {
-        for (auto& mesh : scene.meshes_) {
-            for (auto& vertex : mesh.vertices_) {
-                vertex.uv_.y = 1.f - vertex.uv_.y;
-            }
+    void flip_uv_vertically(SceneIntermediate::Mesh& mesh) {
+        for (auto& vertex : mesh.vertices_) {
+            vertex.uv_.y = 1.f - vertex.uv_.y;
         }
     }
 
