@@ -692,6 +692,7 @@ namespace {
 
                 dal::parser::flip_uv_vertically(mesh);
                 dal::optimize_vertex_cache(mesh);
+                dal::optimize_vertex_fetch(mesh);
             }
             timer.log("DMD Per mesh operations");
 
@@ -969,7 +970,6 @@ namespace {
 namespace dal {
 
     void work_batch(int argc, char* argv[]) {
-        spdlog::set_default_logger(spdlog::stdout_color_mt("console"));
         spdlog::set_level(spdlog::level::debug);
 
         ::Paths paths{ find_yml_path(argc, argv) };

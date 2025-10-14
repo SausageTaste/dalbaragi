@@ -23,4 +23,34 @@ namespace dal {
         std::swap(mesh.indices_, new_indices);
     }
 
+    void optimize_vertex_overdraw(dalp::SceneIntermediate::Mesh& mesh) {
+        meshopt_optimizeOverdraw(
+            mesh.indices_.data(),
+            mesh.indices_.data(),
+            mesh.indices_.size(),
+            &mesh.vertices_[0].pos_.x,
+            mesh.vertices_.size(),
+            sizeof(dalp::SceneIntermediate::Vertex),
+            1.05f
+        );
+    }
+
+    void optimize_vertex_fetch(dalp::SceneIntermediate::Mesh& mesh) {
+        std::vector<dalp::SceneIntermediate::Vertex> vertices(
+            mesh.vertices_.size()
+        );
+
+        const auto resulting_vert_count = meshopt_optimizeVertexFetch(
+            vertices.data(),
+            mesh.indices_.data(),
+            mesh.indices_.size(),
+            mesh.vertices_.data(),
+            mesh.vertices_.size(),
+            sizeof(dalp::SceneIntermediate::Vertex)
+        );
+
+        vertices.resize(resulting_vert_count);
+        std::swap(mesh.vertices_, vertices);
+    }
+
 }  // namespace dal
