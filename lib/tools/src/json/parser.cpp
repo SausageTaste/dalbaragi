@@ -8,7 +8,7 @@
 #include <nlohmann/json.hpp>
 
 #include "daltools/common/byte_tool.h"
-#include "daltools/common/compression.h"
+#include "daltools/common/decompress.hpp"
 #include "daltools/common/konst.h"
 
 

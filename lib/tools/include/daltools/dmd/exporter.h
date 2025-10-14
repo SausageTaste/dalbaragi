@@ -3,7 +3,7 @@
 #include <optional>
 #include <vector>
 
-#include "daltools/common/compression.h"
+#include "daltools/common/compress.hpp"
 #include "daltools/scene/struct.h"
 
 
