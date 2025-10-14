@@ -3,7 +3,7 @@
 #include <sung/basic/byte_arr.hpp>
 
 #include "daltools/bundle/bundle.hpp"
-#include "daltools/common/compression.h"
+#include "daltools/common/decompress.hpp"
 
 
 namespace dal {

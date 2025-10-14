@@ -8,7 +8,7 @@
 
 #include "daltools/bundle/bundle.hpp"
 #include "daltools/bundle/repo.hpp"
-#include "daltools/common/compression.h"
+#include "daltools/common/decompress.hpp"
 
 
 namespace {

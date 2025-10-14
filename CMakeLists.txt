@@ -14,8 +14,7 @@ set(DAL_BUILD_APP OFF CACHE BOOL "Build projects in app folder")
 set(DAL_ENABLE_TEST OFF CACHE BOOL "Enable testing")
 
 
-# Define external libraries
-# ----------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/sungtools)
 
@@ -24,21 +23,22 @@ find_package(base64 CONFIG REQUIRED)
 find_package(enkiTS CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
-find_package(meshoptimizer CONFIG REQUIRED)
-find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(Stb MODULE REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
-find_package(yaml-cpp CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
 
+add_subdirectory(lib/parser)
 
-# Define project library
-# ----------------------------------------------------------------------------------
 
-add_subdirectory(lib/tools)
+# ------------------------------------------------------------------------------
 
 if (DAL_BUILD_APP)
+    find_package(meshoptimizer CONFIG REQUIRED)
+    find_package(nlohmann_json CONFIG REQUIRED)
+    find_package(yaml-cpp CONFIG REQUIRED)
+
+    add_subdirectory(lib/tools)
     add_subdirectory(./app)
 endif()
 

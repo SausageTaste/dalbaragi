@@ -5,7 +5,7 @@
 #include <sung/basic/byte_arr.hpp>
 
 #include "daltools/common/byte_tool.h"
-#include "daltools/common/compression.h"
+#include "daltools/common/decompress.hpp"
 #include "daltools/common/konst.h"
 
 
@@ -294,18 +294,14 @@ namespace {
     }
 
     template <typename _Mesh>
-    void parse_render_unit(
-        sung::BytesReader& r, dal::RenderUnit<_Mesh>& unit
-    ) {
+    void parse_render_unit(sung::BytesReader& r, dal::RenderUnit<_Mesh>& unit) {
         unit.name_ = r.read_nt_str();
         ::parse_material(r, unit.material_);
         ::parse_mesh(r, unit.mesh_);
     }
 
 
-    dal::ModelParseResult parse_all(
-        sung::BytesReader& r, dal::Model& output
-    ) {
+    dal::ModelParseResult parse_all(sung::BytesReader& r, dal::Model& output) {
         ::parse_aabb(r, output.aabb_);
         ::parse_skeleton(r, output.skeleton_);
         ::parse_animations(r, output.animations_);
