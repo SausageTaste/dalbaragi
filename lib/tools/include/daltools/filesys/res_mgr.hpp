@@ -49,7 +49,7 @@ namespace dal {
             const fs::path& path
         ) = 0;
 
-        virtual const dal::parser::Model* get_dmd(const fs::path& path) = 0;
+        virtual const dal::Model* get_dmd(const fs::path& path) = 0;
     };
 
     using HResMgr = std::shared_ptr<IResourceManager>;

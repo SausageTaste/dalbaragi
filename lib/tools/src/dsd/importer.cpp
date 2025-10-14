@@ -19,8 +19,7 @@ namespace {
 namespace dal::dsd {
 
     bool convert(
-        std::vector<uint8_t>& output,
-        const dal::parser::SceneIntermediate& scene
+        std::vector<uint8_t>& output, const dal::SceneIntermediate& scene
     ) {
         {
             output.resize(sizeof(Header));

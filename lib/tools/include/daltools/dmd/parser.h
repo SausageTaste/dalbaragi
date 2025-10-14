@@ -6,7 +6,7 @@
 #include "daltools/scene/struct.h"
 
 
-namespace dal::parser {
+namespace dal {
 
     enum class ModelParseResult {
         success,
@@ -27,4 +27,4 @@ namespace dal::parser {
 
     std::optional<Model> parse_dmd(const BinDataView& src);
 
-}  // namespace dal::parser
+}  // namespace dal

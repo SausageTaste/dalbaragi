@@ -14,9 +14,8 @@
 
 namespace {
 
-    namespace dalp = dal::parser;
     using json_t = nlohmann::json;
-    using scene_t = dal::parser::SceneIntermediate;
+    using scene_t = dal::SceneIntermediate;
 
 
     std::vector<uint8_t> decode_base64(const std::string& base64_data) {
@@ -261,7 +260,7 @@ namespace {
         size_t vertex_count = json_data["vertex count"];
         output.vertices_.resize(vertex_count);
 
-        assert(!dal::parser::is_big_endian());
+        assert(!dal::is_big_endian());
         static_assert(sizeof(float) * 2 == sizeof(glm::vec2));
         static_assert(sizeof(float) * 3 == sizeof(glm::vec3));
 
@@ -318,13 +317,13 @@ namespace {
 
             for (size_t i = 0; i < vertex_count; ++i) {
                 auto& vertex = output.vertices_[i];
-                const auto joint_count = dalp::make_int32(ptr);
+                const auto joint_count = dal::make_int32(ptr);
                 ptr += 4;
 
                 for (size_t j = 0; j < joint_count; ++j) {
-                    const auto idx = dalp::make_int32(ptr);
+                    const auto idx = dal::make_int32(ptr);
                     ptr += 4;
-                    const auto weight = dalp::make_float32(ptr);
+                    const auto weight = dal::make_float32(ptr);
                     ptr += 4;
 
                     vertex.add_joint(idx, weight);
@@ -360,7 +359,7 @@ namespace {
     ) {
         output.name_ = json_data["name"];
         output.parent_name_ = json_data["parent name"];
-        output.joint_type_ = static_cast<dalp::JointType>(
+        output.joint_type_ = static_cast<dal::JointType>(
             static_cast<int>(json_data["joint type"])
         );
         ::parse_mat4(json_data["offset matrix"], output.offset_mat_);
@@ -390,7 +389,7 @@ namespace {
         const auto end = begin + joints_data_size;
         auto it = begin;
 
-        const auto joint_count = dalp::make_int32(it);
+        const auto joint_count = dal::make_int32(it);
         it += 4;
 
         for (int32_t i = 0; i < joint_count; ++i) {
@@ -403,15 +402,15 @@ namespace {
             // Positions
             {
                 ::AnimAssembler asmbler;
-                const auto triplet_count = dalp::make_int32(it);
+                const auto triplet_count = dal::make_int32(it);
                 it += 4;
 
                 for (int32_t j = 0; j < triplet_count; ++j) {
-                    const auto time_point = dalp::make_float32(it);
+                    const auto time_point = dal::make_float32(it);
                     it += 4;
-                    const auto channel = dalp::make_int16(it);
+                    const auto channel = dal::make_int16(it);
                     it += 2;
-                    const auto value = dalp::make_float32(it);
+                    const auto value = dal::make_float32(it);
                     it += 4;
 
                     asmbler.add(time_point, channel, value);
@@ -430,15 +429,15 @@ namespace {
             // Rotations
             {
                 ::AnimAssembler asmbler;
-                const auto triplet_count = dalp::make_int32(it);
+                const auto triplet_count = dal::make_int32(it);
                 it += 4;
 
                 for (int32_t j = 0; j < triplet_count; ++j) {
-                    const auto time_point = dalp::make_float32(it);
+                    const auto time_point = dal::make_float32(it);
                     it += 4;
-                    const auto channel = dalp::make_int16(it);
+                    const auto channel = dal::make_int16(it);
                     it += 2;
-                    const auto value = dalp::make_float32(it);
+                    const auto value = dal::make_float32(it);
                     it += 4;
 
                     asmbler.add(time_point, channel, value);
@@ -458,15 +457,15 @@ namespace {
             // Scales
             {
                 ::AnimAssembler asmbler;
-                const auto triplet_count = dalp::make_int32(it);
+                const auto triplet_count = dal::make_int32(it);
                 it += 4;
 
                 for (int32_t j = 0; j < triplet_count; ++j) {
-                    const auto time_point = dalp::make_float32(it);
+                    const auto time_point = dal::make_float32(it);
                     it += 4;
-                    const auto channel = dalp::make_int16(it);
+                    const auto channel = dal::make_int16(it);
                     it += 2;
-                    const auto value = dalp::make_float32(it);
+                    const auto value = dal::make_float32(it);
                     it += 4;
 
                     asmbler.add(time_point, channel, value);
@@ -567,7 +566,7 @@ namespace {
 }  // namespace
 
 
-namespace dal::parser {
+namespace dal {
 
     JsonParseResult parse_json(
         std::vector<SceneIntermediate>& scenes,
@@ -631,4 +630,4 @@ namespace dal::parser {
         );
     }
 
-}  // namespace dal::parser
+}  // namespace dal

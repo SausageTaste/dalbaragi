@@ -1,7 +1,7 @@
 #include "daltools/common/byte_tool.h"
 
 
-namespace dal::parser {
+namespace dal {
 
     bool is_big_endian() {
         constexpr short int number = 0x1;
@@ -14,18 +14,19 @@ namespace dal::parser {
     }
 
     int32_t make_int16(const uint8_t* begin) {
-        static_assert(1 == sizeof(uint8_t), "Size of uint8 is not 1 byte. WTF???");
+        static_assert(
+            1 == sizeof(uint8_t), "Size of uint8 is not 1 byte. WTF???"
+        );
         static_assert(4 == sizeof(float), "Size of float is not 4 bytes.");
 
         uint8_t buf[4];
 
-        if ( is_big_endian() ) {
+        if (is_big_endian()) {
             buf[0] = 0;
             buf[1] = 0;
             buf[2] = begin[1];
             buf[3] = begin[0];
-        }
-        else {
+        } else {
             buf[0] = begin[0];
             buf[1] = begin[1];
             buf[2] = 0;
@@ -49,14 +50,12 @@ namespace dal::parser {
         return assemble_4_bytes<float>(begin);
     }
 
-}
+}  // namespace dal
 
 
-namespace dal::parser {
+namespace dal {
 
-    uint8_t to_bool8(const bool v) {
-        return v ? 1 : 0;
-    }
+    uint8_t to_bool8(const bool v) { return v ? 1 : 0; }
 
     void to_int16(const int32_t v, uint8_t* const buffer) {
         const auto src_loc = reinterpret_cast<const uint8_t*>(&v);
@@ -64,8 +63,7 @@ namespace dal::parser {
         if (is_big_endian()) {
             buffer[0] = src_loc[1];
             buffer[1] = src_loc[0];
-        }
-        else {
+        } else {
             std::memcpy(buffer, src_loc, 2);
         }
     }
@@ -78,8 +76,7 @@ namespace dal::parser {
             buffer[1] = src_loc[2];
             buffer[2] = src_loc[1];
             buffer[3] = src_loc[0];
-        }
-        else {
+        } else {
             std::memcpy(buffer, src_loc, 4);
         }
     }
@@ -92,20 +89,21 @@ namespace dal::parser {
             buffer[1] = src_loc[2];
             buffer[2] = src_loc[1];
             buffer[3] = src_loc[0];
-        }
-        else {
+        } else {
             std::memcpy(buffer, src_loc, 4);
         }
     }
 
-}
+}  // namespace dal
 
 
 // BinaryDataArray
-namespace dal::parser {
+namespace dal {
 
     BinaryDataArray& BinaryDataArray::operator+=(const BinaryDataArray& other) {
-        this->m_vector.insert(this->m_vector.end(), other.m_vector.begin(), other.m_vector.end());
+        this->m_vector.insert(
+            this->m_vector.end(), other.m_vector.begin(), other.m_vector.end()
+        );
         return *this;
     }
 
@@ -113,9 +111,7 @@ namespace dal::parser {
         return this->m_vector.data();
     }
 
-    size_t BinaryDataArray::size() const {
-        return this->m_vector.size();
-    }
+    size_t BinaryDataArray::size() const { return this->m_vector.size(); }
 
     void BinaryDataArray::reserve(const size_t reserve_size) {
         this->m_vector.reserve(reserve_size);
@@ -133,7 +129,9 @@ namespace dal::parser {
         this->append_array(&v, 1);
     }
 
-    void BinaryDataArray::append_int32_array(const int32_t* const arr, const size_t arr_size) {
+    void BinaryDataArray::append_int32_array(
+        const int32_t* const arr, const size_t arr_size
+    ) {
         this->append_array(arr, arr_size);
     }
 
@@ -145,15 +143,17 @@ namespace dal::parser {
         this->append_array(&v, 1);
     }
 
-    void BinaryDataArray::append_float32_array(const float* const arr, const size_t arr_size) {
+    void BinaryDataArray::append_float32_array(
+        const float* const arr, const size_t arr_size
+    ) {
         this->append_array(arr, arr_size);
     }
 
-    void BinaryDataArray::append_char(const char c) {
-        this->push_back(c);
-    }
+    void BinaryDataArray::append_char(const char c) { this->push_back(c); }
 
-    void BinaryDataArray::append_null_terminated_str(const char* const str, const size_t str_size) {
+    void BinaryDataArray::append_null_terminated_str(
+        const char* const str, const size_t str_size
+    ) {
         this->append_array(str, str_size);
         this->push_back(0);
     }
@@ -162,27 +162,19 @@ namespace dal::parser {
         this->append_null_terminated_str(str.data(), str.size());
     }
 
-}
+}  // namespace dal
 
 
 // BinaryArrayParser
-namespace dal::parser {
+namespace dal {
 
-    BinaryArrayParser::BinaryArrayParser(const uint8_t* const array, const size_t size)
-        : m_array(array)
-        , m_size(size)
-        , pos_(0)
-    {
-
-    }
+    BinaryArrayParser::BinaryArrayParser(
+        const uint8_t* const array, const size_t size
+    )
+        : m_array(array), m_size(size), pos_(0) {}
 
     BinaryArrayParser::BinaryArrayParser(const std::vector<uint8_t>& vector)
-        : m_array(vector.data())
-        , m_size(vector.size())
-        , pos_(0)
-    {
-
-    }
+        : m_array(vector.data()), m_size(vector.size()), pos_(0) {}
 
     bool BinaryArrayParser::parse_bool8() {
         this->pos_ += 1;
@@ -193,7 +185,9 @@ namespace dal::parser {
         return this->parse_one<int32_t>();
     }
 
-    void BinaryArrayParser::parse_int32_array(int32_t* const arr, const size_t arr_size) {
+    void BinaryArrayParser::parse_int32_array(
+        int32_t* const arr, const size_t arr_size
+    ) {
         this->parse_array(arr, arr_size);
     }
 
@@ -205,18 +199,20 @@ namespace dal::parser {
         return this->parse_one<float>();
     }
 
-    void BinaryArrayParser::parse_float32_array(float* const arr, const size_t arr_size) {
+    void BinaryArrayParser::parse_float32_array(
+        float* const arr, const size_t arr_size
+    ) {
         this->parse_array(arr, arr_size);
     }
 
-    char BinaryArrayParser::parse_char() {
-        return this->parse_one<char>();
-    }
+    char BinaryArrayParser::parse_char() { return this->parse_one<char>(); }
 
     std::string BinaryArrayParser::parse_str() {
-        const std::string output = reinterpret_cast<const char*>(this->m_array + this->pos_);
+        const std::string output = reinterpret_cast<const char*>(
+            this->m_array + this->pos_
+        );
         this->pos_ += output.size() + 1;
         return output;
     }
 
-}
+}  // namespace dal

@@ -1,11 +1,11 @@
 
-namespace dal::parser {
+namespace dal {
 
     constexpr int MAGIC_NUMBER_SIZE = 6;
 
     constexpr char MAGIC_NUMBERS_DAL_MODEL[] = "dalmdl";
 
-}
+}  // namespace dal
 
 
 namespace dal::crypto {

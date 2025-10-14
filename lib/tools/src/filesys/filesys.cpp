@@ -37,8 +37,9 @@ namespace {
             return false;
         }
 
-        bool read_file(const fs::path& i_path, std::vector<uint8_t>& out)
-            override {
+        bool read_file(
+            const fs::path& i_path, std::vector<uint8_t>& out
+        ) override {
             const auto raw_path = this->make_raw_path(i_path);
             if (!raw_path.has_value())
                 return false;
@@ -55,8 +56,9 @@ namespace {
             return false;
         }
 
-        bool read_file(const fs::path& i_path, std::vector<std::byte>& out)
-            override {
+        bool read_file(
+            const fs::path& i_path, std::vector<std::byte>& out
+        ) override {
             const auto raw_path = this->make_raw_path(i_path);
             if (!raw_path.has_value())
                 return false;

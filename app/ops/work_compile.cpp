@@ -56,7 +56,7 @@ namespace {
     void do_file(
         const std::filesystem::path& src_path, dal::CompressMethod comp_method
     ) {
-        using namespace dal::parser;
+        using namespace dal;
 
         const auto json_data = ::read_file(src_path);
 

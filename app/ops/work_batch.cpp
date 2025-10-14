@@ -587,11 +587,11 @@ namespace {
             auto bin_path = json_path;
             bin_path.replace_extension(".bin");
 
-            std::vector<dal::parser::SceneIntermediate> scenes;
+            std::vector<dal::SceneIntermediate> scenes;
             if (const auto bin_data = ::read_file(bin_path))
-                dal::parser::parse_json_bin(scenes, *json_data, *bin_data);
+                dal::parse_json_bin(scenes, *json_data, *bin_data);
             else
-                dal::parser::parse_json(scenes, *json_data);
+                dal::parse_json(scenes, *json_data);
 
             if (scenes.size() != 1)
                 return this->fail("Invalid scene count: {}\n", scenes.size());
@@ -619,7 +619,7 @@ namespace {
         const WorkDef::Dmd* dmd_def_;
         const Paths* paths_;
         std::unordered_set<std::string> textures_in_use_;
-        dal::parser::SceneIntermediate scene_;
+        dal::SceneIntermediate scene_;
     };
 
 
@@ -650,7 +650,7 @@ namespace {
         }
 
         void init(
-            dal::parser::SceneIntermediate&& scene,
+            dal::SceneIntermediate&& scene,
             const WorkDef& work_def,
             const WorkDef::Dmd& dmd_def,
             const fs::path& out_dir
@@ -666,31 +666,31 @@ namespace {
         ) override {
             TimerLogger timer;
 
-            dal::parser::clear_collection_info(scene_);
+            dal::clear_collection_info(scene_);
             timer.log("DMD Clear collection info");
 
-            dal::parser::remove_duplicate_materials(scene_);
+            dal::remove_duplicate_materials(scene_);
             timer.log("DMD Remove duplicate materials");
-            dal::parser::merge_redundant_mesh_actors(scene_);
+            dal::merge_redundant_mesh_actors(scene_);
             timer.log("DMD Merge redundant mesh actors");
 
             if (dmd_def_->detect_alpha_) {
-                dal::parser::split_by_transparency(scene_, work_def_->lup());
+                dal::split_by_transparency(scene_, work_def_->lup());
                 timer.log("DMD Split by transparency");
             }
 
-            dal::parser::remove_empty_meshes(scene_);
+            dal::remove_empty_meshes(scene_);
             timer.log("DMD Remove empty meshes");
-            dal::parser::reduce_joints(scene_);
+            dal::reduce_joints(scene_);
             timer.log("DMD Reduce joints");
-            dal::parser::apply_root_transform(scene_);
+            dal::apply_root_transform(scene_);
             timer.log("DMD Apply root transform");
 
             for (auto& mesh : scene_.meshes_) {
                 if (dmd_def_->merge_vertex_dups_)
-                    dal::parser::reduce_indexed_vertices(mesh);
+                    dal::reduce_indexed_vertices(mesh);
 
-                dal::parser::flip_uv_vertically(mesh);
+                dal::flip_uv_vertically(mesh);
                 dal::optimize_vertex_cache(mesh);
                 dal::optimize_vertex_fetch(mesh);
             }
@@ -701,9 +701,9 @@ namespace {
             }
             timer.log("DMD Update texture paths");
 
-            const auto model = dal::parser::convert_to_model_dmd(scene_);
+            const auto model = dal::convert_to_model_dmd(scene_);
             timer.log("DMD Build model");
-            const auto bin_built = dal::parser::build_binary_model(
+            const auto bin_built = dal::build_binary_model(
                 model, deduce_comp_method(dmd_def_->comp_method_)
             );
             timer.log("DMD Build binary data");
@@ -722,7 +722,7 @@ namespace {
         const fs::path& output_path() const { return output_path_; }
 
     private:
-        void clean_tex_paths(dal::parser::SceneIntermediate::Material& m) {
+        void clean_tex_paths(dal::SceneIntermediate::Material& m) {
             m.albedo_map_ = ::clean_tex_path(m.albedo_map_);
             m.normal_map_ = ::clean_tex_path(m.normal_map_);
             m.metallic_map_ = ::clean_tex_path(m.metallic_map_);
@@ -746,7 +746,7 @@ namespace {
 
         const WorkDef* work_def_;
         const WorkDef::Dmd* dmd_def_;
-        dal::parser::SceneIntermediate scene_;
+        dal::SceneIntermediate scene_;
         fs::path out_dir_;
         fs::path output_path_;
     };

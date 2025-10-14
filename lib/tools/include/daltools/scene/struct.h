@@ -9,7 +9,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 
-namespace dal::parser {
+namespace dal {
 
     using jointID_t = int32_t;
 
@@ -385,4 +385,4 @@ namespace dal::parser {
         AABB3 aabb_;
     };
 
-}  // namespace dal::parser
+}  // namespace dal

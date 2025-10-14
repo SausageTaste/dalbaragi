@@ -116,39 +116,39 @@ namespace {
             );
             fmt::print(" - Read file ({:.2f})\n", timer.check_get_elapsed());
 
-            std::vector<dal::parser::SceneIntermediate> scenes;
-            dal::parser::JsonParseResult result;
+            std::vector<dal::SceneIntermediate> scenes;
+            dal::JsonParseResult result;
             if (bin_file_content) {
-                result = dal::parser::parse_json_bin(
+                result = dal::parse_json_bin(
                     scenes, *file_content, *bin_file_content
                 );
             } else {
-                result = dal::parser::parse_json(scenes, *file_content);
+                result = dal::parse_json(scenes, *file_content);
             }
             ASSERT_EQ(scenes.size(), 1);
             fmt::print(" - Json parsed ({:.2f})\n", timer.check_get_elapsed());
 
             for (auto& scene : scenes) {
-                dal::parser::flip_uv_vertically(scene);
-                dal::parser::clear_collection_info(scene);
-                dal::parser::optimize_scene(scene, json_path);
+                dal::flip_uv_vertically(scene);
+                dal::clear_collection_info(scene);
+                dal::optimize_scene(scene, json_path);
             }
             fmt::print(" - Optimzied ({:.2f})\n", timer.check_get_elapsed());
 
-            const auto model1 = dal::parser::convert_to_model_dmd(scenes.at(0));
+            const auto model1 = dal::convert_to_model_dmd(scenes.at(0));
             fmt::print(" - Model built ({:.2f})\n", timer.check_get_elapsed());
 
-            const auto binary1 = dal::parser::build_binary_model(
+            const auto binary1 = dal::build_binary_model(
                 model1, dal::CompressMethod::brotli
             );
             ASSERT_TRUE(binary1.has_value());
             fmt::print(" - DMD built ({:.2f})\n", timer.check_get_elapsed());
 
-            const auto model2 = dal::parser::parse_dmd(*binary1);
+            const auto model2 = dal::parse_dmd(*binary1);
             ASSERT_TRUE(model2.has_value());
             fmt::print(" - DMD parsed ({:.2f})\n", timer.check_get_elapsed());
 
-            const auto binary2 = dal::parser::build_binary_model(
+            const auto binary2 = dal::build_binary_model(
                 *model2, dal::CompressMethod::brotli
             );
             ASSERT_TRUE(binary2.has_value());

@@ -5,12 +5,9 @@
 #include "daltools/common/konst.h"
 
 
-namespace dalp = dal::parser;
-
-
 namespace {
 
-    class BinaryBuildBuffer : public dalp::BinaryDataArray {
+    class BinaryBuildBuffer : public dal::BinaryDataArray {
 
     public:
         void append_float32_vector(const std::vector<float>& v) {
@@ -44,10 +41,10 @@ namespace {
         const size_t src_size,
         dal::CompressMethod comp_method
     ) {
-        dalp::BinaryDataArray output;
+        dal::BinaryDataArray output;
 
         output.append_array(
-            dalp::MAGIC_NUMBERS_DAL_MODEL, dalp::MAGIC_NUMBER_SIZE
+            dal::MAGIC_NUMBERS_DAL_MODEL, dal::MAGIC_NUMBER_SIZE
         );
         output.append_int32(static_cast<int32_t>(comp_method));
         output.append_int64(src_size);
@@ -72,7 +69,7 @@ namespace {
         return output.release();
     }
 
-    void append_bin_aabb(::BinaryBuildBuffer& output, const dalp::AABB3& aabb) {
+    void append_bin_aabb(::BinaryBuildBuffer& output, const dal::AABB3& aabb) {
         output.append_float32(aabb.min_.x);
         output.append_float32(aabb.min_.y);
         output.append_float32(aabb.min_.z);
@@ -88,7 +85,7 @@ namespace {
 namespace {
 
     void build_bin_skeleton(
-        ::BinaryBuildBuffer& output, const dalp::Skeleton& skeleton
+        ::BinaryBuildBuffer& output, const dal::Skeleton& skeleton
     ) {
         output.append_mat4(skeleton.root_transform_);
         output.append_int32(skeleton.joints_.size());
@@ -100,13 +97,13 @@ namespace {
             output.append_int32(joint.parent_index_);
 
             switch (joint.joint_type_) {
-                case dalp::JointType::basic:
+                case dal::JointType::basic:
                     output.append_int32(0);
                     break;
-                case dalp::JointType::hair_root:
+                case dal::JointType::hair_root:
                     output.append_int32(1);
                     break;
-                case dalp::JointType::skirt_root:
+                case dal::JointType::skirt_root:
                     output.append_int32(2);
                     break;
                 default:
@@ -118,7 +115,7 @@ namespace {
     }
 
     void _build_bin_joint_keyframes(
-        ::BinaryBuildBuffer& output, const dalp::AnimJoint& joint
+        ::BinaryBuildBuffer& output, const dal::AnimJoint& joint
     ) {
         output.append_str(joint.name_);
         output.append_mat4(glm::mat4{ 1 });
@@ -149,7 +146,7 @@ namespace {
 
     void build_bin_animation(
         ::BinaryBuildBuffer& output,
-        const std::vector<dalp::Animation>& animations
+        const std::vector<dal::Animation>& animations
     ) {
         output.append_int32(animations.size());
 
@@ -175,7 +172,7 @@ namespace {
 namespace {
 
     void build_bin_material(
-        ::BinaryBuildBuffer& output, const dalp::Material& material
+        ::BinaryBuildBuffer& output, const dal::Material& material
     ) {
         output.append_float32(material.roughness_);
         output.append_float32(material.metallic_);
@@ -187,7 +184,7 @@ namespace {
     }
 
     void build_bin_mesh_straight(
-        ::BinaryBuildBuffer& output, const dalp::Mesh_Straight& mesh
+        ::BinaryBuildBuffer& output, const dal::Mesh_Straight& mesh
     ) {
         assert(mesh.vertices_.size() * 2 == mesh.uv_coordinates_.size() * 3);
         assert(mesh.vertices_.size() == mesh.normals_.size());
@@ -201,14 +198,14 @@ namespace {
     }
 
     void build_bin_mesh_straight_joint(
-        ::BinaryBuildBuffer& output, const dalp::Mesh_StraightJoint& mesh
+        ::BinaryBuildBuffer& output, const dal::Mesh_StraightJoint& mesh
     ) {
         assert(
-            mesh.vertices_.size() * dal::parser::NUM_JOINTS_PER_VERTEX ==
+            mesh.vertices_.size() * dal::NUM_JOINTS_PER_VERTEX ==
             mesh.joint_indices_.size() * 3
         );
         assert(
-            mesh.vertices_.size() * dal::parser::NUM_JOINTS_PER_VERTEX ==
+            mesh.vertices_.size() * dal::NUM_JOINTS_PER_VERTEX ==
             mesh.joint_weights_.size() * 3
         );
 
@@ -221,9 +218,9 @@ namespace {
     }
 
     void build_bin_mesh_indexed(
-        ::BinaryBuildBuffer& output, const dalp::Mesh_Indexed& mesh
+        ::BinaryBuildBuffer& output, const dal::Mesh_Indexed& mesh
     ) {
-        static_assert(32 == sizeof(dalp::Mesh_Indexed::VERT_TYPE));
+        static_assert(32 == sizeof(dal::Mesh_Indexed::VERT_TYPE));
 
         output.append_int64(mesh.vertices_.size());
         for (auto& vert : mesh.vertices_) {
@@ -246,9 +243,9 @@ namespace {
     }
 
     void build_bin_mesh_indexed_joint(
-        ::BinaryBuildBuffer& output, const dalp::Mesh_IndexedJoint& mesh
+        ::BinaryBuildBuffer& output, const dal::Mesh_IndexedJoint& mesh
     ) {
-        static_assert(64 == sizeof(dalp::Mesh_IndexedJoint::VERT_TYPE));
+        static_assert(64 == sizeof(dal::Mesh_IndexedJoint::VERT_TYPE));
 
         output.append_int64(mesh.vertices_.size());
         for (auto& vert : mesh.vertices_) {
@@ -283,7 +280,7 @@ namespace {
 }  // namespace
 
 
-namespace dal::parser {
+namespace dal {
 
     ModelExportResult build_binary_model(
         std::vector<uint8_t>& output,
@@ -345,4 +342,4 @@ namespace dal::parser {
             return result;
     }
 
-}  // namespace dal::parser
+}  // namespace dal

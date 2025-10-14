@@ -6,16 +6,13 @@
 
 namespace {
 
-    namespace dalp = dal::parser;
-
-
     void fill_mesh_skinned(
-        dalp::Mesh_IndexedJoint& output, const dalp::Mesh_StraightJoint& input
+        dal::Mesh_IndexedJoint& output, const dal::Mesh_StraightJoint& input
     ) {
         const auto vertex_count = input.vertices_.size() / 3;
 
         for (size_t i = 0; i < vertex_count; ++i) {
-            dalp::VertexJoint vert;
+            dal::VertexJoint vert;
 
             vert.pos_ = glm::vec3{ input.vertices_[3 * i + 0],
                                    input.vertices_[3 * i + 1],
@@ -24,25 +21,26 @@ namespace {
             vert.uv_ = glm::vec2{ input.uv_coordinates_[2 * i + 0],
                                   input.uv_coordinates_[2 * i + 1] };
 
-            vert.normal_ = glm::normalize(glm::vec3{ input.normals_[3 * i + 0],
-                                                     input.normals_[3 * i + 1],
-                                                     input.normals_[3 * i + 2] }
+            vert.normal_ = glm::normalize(
+                glm::vec3{ input.normals_[3 * i + 0],
+                           input.normals_[3 * i + 1],
+                           input.normals_[3 * i + 2] }
             );
 
-            static_assert(4 == dalp::NUM_JOINTS_PER_VERTEX);
+            static_assert(4 == dal::NUM_JOINTS_PER_VERTEX);
 
             vert.joint_weights_ = glm::vec4{
-                input.joint_weights_[dalp::NUM_JOINTS_PER_VERTEX * i + 0],
-                input.joint_weights_[dalp::NUM_JOINTS_PER_VERTEX * i + 1],
-                input.joint_weights_[dalp::NUM_JOINTS_PER_VERTEX * i + 2],
-                input.joint_weights_[dalp::NUM_JOINTS_PER_VERTEX * i + 3]
+                input.joint_weights_[dal::NUM_JOINTS_PER_VERTEX * i + 0],
+                input.joint_weights_[dal::NUM_JOINTS_PER_VERTEX * i + 1],
+                input.joint_weights_[dal::NUM_JOINTS_PER_VERTEX * i + 2],
+                input.joint_weights_[dal::NUM_JOINTS_PER_VERTEX * i + 3]
             };
 
             vert.joint_indices_ = glm::ivec4{
-                input.joint_indices_[dalp::NUM_JOINTS_PER_VERTEX * i + 0],
-                input.joint_indices_[dalp::NUM_JOINTS_PER_VERTEX * i + 1],
-                input.joint_indices_[dalp::NUM_JOINTS_PER_VERTEX * i + 2],
-                input.joint_indices_[dalp::NUM_JOINTS_PER_VERTEX * i + 3]
+                input.joint_indices_[dal::NUM_JOINTS_PER_VERTEX * i + 0],
+                input.joint_indices_[dal::NUM_JOINTS_PER_VERTEX * i + 1],
+                input.joint_indices_[dal::NUM_JOINTS_PER_VERTEX * i + 2],
+                input.joint_indices_[dal::NUM_JOINTS_PER_VERTEX * i + 3]
             };
 
             output.add_vertex(vert);
@@ -50,12 +48,12 @@ namespace {
     }
 
     void fill_mesh_basic(
-        dalp::Mesh_Indexed& output, const dalp::Mesh_Straight& input
+        dal::Mesh_Indexed& output, const dal::Mesh_Straight& input
     ) {
         const auto vertex_count = input.vertices_.size() / 3;
 
         for (size_t i = 0; i < vertex_count; ++i) {
-            dalp::Vertex vert;
+            dal::Vertex vert;
 
             vert.pos_ = glm::vec3{ input.vertices_[3 * i + 0],
                                    input.vertices_[3 * i + 1],
@@ -64,9 +62,10 @@ namespace {
             vert.uv_ = glm::vec2{ input.uv_coordinates_[2 * i + 0],
                                   input.uv_coordinates_[2 * i + 1] };
 
-            vert.normal_ = glm::normalize(glm::vec3{ input.normals_[3 * i + 0],
-                                                     input.normals_[3 * i + 1],
-                                                     input.normals_[3 * i + 2] }
+            vert.normal_ = glm::normalize(
+                glm::vec3{ input.normals_[3 * i + 0],
+                           input.normals_[3 * i + 1],
+                           input.normals_[3 * i + 2] }
             );
 
             output.add_vertex(vert);
@@ -75,9 +74,9 @@ namespace {
 
 
     template <typename _Mesh>
-    dalp::RenderUnit<_Mesh>* find_same_material(
-        const dalp::RenderUnit<_Mesh>& criteria,
-        std::vector<dalp::RenderUnit<_Mesh>>& units
+    dal::RenderUnit<_Mesh>* find_same_material(
+        const dal::RenderUnit<_Mesh>& criteria,
+        std::vector<dal::RenderUnit<_Mesh>>& units
     ) {
         for (auto& x : units)
             if (x.material_.is_physically_same(criteria.material_))
@@ -87,10 +86,10 @@ namespace {
     };
 
     template <typename _Mesh>
-    std::vector<dalp::RenderUnit<_Mesh>> merge_by_material(
-        const std::vector<dalp::RenderUnit<_Mesh>>& units
+    std::vector<dal::RenderUnit<_Mesh>> merge_by_material(
+        const std::vector<dal::RenderUnit<_Mesh>>& units
     ) {
-        std::vector<dalp::RenderUnit<_Mesh>> output;
+        std::vector<dal::RenderUnit<_Mesh>> output;
         if (units.empty())
             return output;
 
@@ -121,7 +120,7 @@ namespace {
 // For reduce_joints
 namespace {
 
-    using dalp::jointID_t;
+    using dal::jointID_t;
     using str_set_t = std::unordered_set<std::string>;
 
 
@@ -165,7 +164,7 @@ namespace {
     }
 
 
-    bool is_joint_useless(const dalp::AnimJoint& joint) {
+    bool is_joint_useless(const dal::AnimJoint& joint) {
         if (!joint.translations_.empty())
             return false;
         else if (!joint.rotations_.empty())
@@ -176,15 +175,15 @@ namespace {
             return true;
     }
 
-    ::str_set_t get_vital_joint_names(const dalp::Skeleton& skeleton) {
+    ::str_set_t get_vital_joint_names(const dal::Skeleton& skeleton) {
         // Super parents' children are all vital
         ::str_set_t output, super_parents;
 
         for (auto& joint : skeleton.joints_) {
             if (-1 == joint.parent_index_) {
                 output.insert(joint.name_);
-            } else if (dalp::JointType::hair_root == joint.joint_type_ ||
-                       dalp::JointType::skirt_root == joint.joint_type_) {
+            } else if (dal::JointType::hair_root == joint.joint_type_ ||
+                       dal::JointType::skirt_root == joint.joint_type_) {
                 super_parents.insert(joint.name_);
                 output.insert(joint.name_);
             } else {
@@ -202,8 +201,8 @@ namespace {
     }
 
     ::str_set_t get_joint_names_with_non_identity_transform(
-        const std::vector<dalp::Animation>& animations,
-        const dalp::Skeleton& skeleton
+        const std::vector<dal::Animation>& animations,
+        const dal::Skeleton& skeleton
     ) {
         ::str_set_t output;
 
@@ -245,7 +244,7 @@ namespace {
         std::unordered_map<std::string, std::string> m_replace_map;
 
     public:
-        void fill_joints(const dalp::Skeleton& skeleton) {
+        void fill_joints(const dal::Skeleton& skeleton) {
             m_data.resize(skeleton.joints_.size());
 
             for (size_t i = 0; i < skeleton.joints_.size(); ++i) {
@@ -326,11 +325,11 @@ namespace {
         }
     };
 
-    dalp::Skeleton make_new_skeleton(
-        const dalp::Skeleton& src_skeleton,
+    dal::Skeleton make_new_skeleton(
+        const dal::Skeleton& src_skeleton,
         const JointParentNameManager& jname_manager
     ) {
-        dalp::Skeleton output;
+        dal::Skeleton output;
         const auto survivor_joints = jname_manager.make_names_set();
 
         for (auto& src_joint : src_skeleton.joints_) {
@@ -366,8 +365,8 @@ namespace {
     }
 
     std::unordered_map<jointID_t, jointID_t> make_index_replace_map(
-        const dalp::Skeleton& froskeleton_,
-        const dalp::Skeleton& to_skeleton,
+        const dal::Skeleton& froskeleton_,
+        const dal::Skeleton& to_skeleton,
         const JointParentNameManager& jname_manager
     ) {
         std::unordered_map<jointID_t, jointID_t> output;
@@ -387,7 +386,7 @@ namespace {
 }  // namespace
 
 
-namespace dal::parser {
+namespace dal {
 
     Mesh_Indexed convert_to_indexed(const Mesh_Straight& input) {
         Mesh_Indexed output;
@@ -408,11 +407,11 @@ namespace dal::parser {
         assert(2 * vertex_count == input.uv_coordinates_.size());
         assert(3 * vertex_count == input.normals_.size());
         assert(
-            dalp::NUM_JOINTS_PER_VERTEX * vertex_count ==
+            dal::NUM_JOINTS_PER_VERTEX * vertex_count ==
             input.joint_indices_.size()
         );
         assert(
-            dalp::NUM_JOINTS_PER_VERTEX * vertex_count ==
+            dal::NUM_JOINTS_PER_VERTEX * vertex_count ==
             input.joint_weights_.size()
         );
 
@@ -447,7 +446,7 @@ namespace dal::parser {
     }
 
 
-    JointReductionResult reduce_joints(dalp::Model& model) {
+    JointReductionResult reduce_joints(dal::Model& model) {
         if (model.animations_.empty())
             return JointReductionResult::needless;
 
@@ -501,4 +500,4 @@ namespace dal::parser {
         return JointReductionResult::success;
     }
 
-}  // namespace dal::parser
+}  // namespace dal

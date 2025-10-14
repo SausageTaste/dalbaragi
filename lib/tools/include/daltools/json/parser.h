@@ -6,7 +6,7 @@
 #include "daltools/scene/struct.h"
 
 
-namespace dal::parser {
+namespace dal {
 
     enum class JsonParseResult {
         success,
@@ -36,4 +36,4 @@ namespace dal::parser {
         const BinDataView& bin_src
     );
 
-}  // namespace dal::parser
+}  // namespace dal

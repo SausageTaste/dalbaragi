@@ -18,8 +18,7 @@
 namespace {
 
     namespace fs = std::filesystem;
-    namespace dalp = dal::parser;
-    using scene_t = dalp::SceneIntermediate;
+    using scene_t = dal::SceneIntermediate;
 
 
     template <typename T>
@@ -135,8 +134,8 @@ namespace {
 namespace {
 
     template <typename T>
-    dalp::RenderUnit<T>& find_or_create_render_unit_by_material(
-        std::vector<dalp::RenderUnit<T>>& units,
+    dal::RenderUnit<T>& find_or_create_render_unit_by_material(
+        std::vector<dal::RenderUnit<T>>& units,
         const scene_t::Mesh& src_mesh,
         const scene_t::Material& src_mat
     ) {
@@ -157,7 +156,7 @@ namespace {
     }
 
     void convert_meshes(
-        dalp::Model& output, const dalp::SceneIntermediate& scene
+        dal::Model& output, const dal::SceneIntermediate& scene
     ) {
         for (auto& src_mesh_actor : scene.mesh_actors_) {
             const auto actor_mat4 = scene.make_hierarchy_transform(
@@ -191,7 +190,7 @@ namespace {
                     for (auto src_index : src_mesh->indices_) {
                         auto& src_vert = src_mesh->vertices_[src_index];
 
-                        dalp::Vertex vertex;
+                        dal::Vertex vertex;
                         vertex.pos_ = actor_mat4 *
                                       glm::vec4{ src_vert.pos_, 1 };
                         vertex.uv_ = src_vert.uv_;
@@ -211,7 +210,7 @@ namespace {
                     for (auto src_index : src_mesh->indices_) {
                         auto& src_vert = src_mesh->vertices_[src_index];
 
-                        dalp::VertexJoint vertex;
+                        dal::VertexJoint vertex;
                         vertex.joint_indices_ = src_vert.j_indices_;
                         vertex.joint_weights_ = src_vert.j_weights_;
                         vertex.pos_ = actor_mat4 *
@@ -229,7 +228,7 @@ namespace {
     }
 
     void convert_skeleton(
-        dalp::Skeleton& dst, const dalp::SceneIntermediate::Skeleton& src
+        dal::Skeleton& dst, const dal::SceneIntermediate::Skeleton& src
     ) {
         const auto root_mat = src.root_transform_.make_mat4();
 
@@ -391,11 +390,11 @@ namespace {
         }
 
     private:
-        dalp::jointID_t find_by_name(const std::string& name) {
+        dal::jointID_t find_by_name(const std::string& name) {
             if (this->NO_PARENT_NAME == name)
                 return -1;
 
-            for (dalp::jointID_t i = 0; i < this->m_data.size(); ++i) {
+            for (dal::jointID_t i = 0; i < this->m_data.size(); ++i) {
                 if (this->m_data[i].name_ == name) {
                     return i;
                 }
@@ -410,7 +409,7 @@ namespace {
         const scene_t::Skeleton& skeleton, const scene_t::Animation& anim
     ) {
         for (auto& joint : skeleton.joints_) {
-            if (dal::parser::NULL_JID != anim.find_index_by_name(joint.name_)) {
+            if (dal::NULL_JID != anim.find_index_by_name(joint.name_)) {
                 return true;
             }
         }
@@ -437,9 +436,8 @@ namespace {
         for (auto& joint : skeleton.joints_) {
             if (joint.is_root()) {
                 output.insert(joint.name_);
-            } else if (dal::parser::JointType::hair_root == joint.joint_type_ ||
-                       dal::parser::JointType::skirt_root ==
-                           joint.joint_type_) {
+            } else if (dal::JointType::hair_root == joint.joint_type_ ||
+                       dal::JointType::skirt_root == joint.joint_type_) {
                 super_parents.insert(joint.name_);
                 output.insert(joint.name_);
             } else {
@@ -522,19 +520,19 @@ namespace {
         return output;
     }
 
-    std::unordered_map<dalp::jointID_t, dalp::jointID_t> make_index_replace_map(
+    std::unordered_map<dal::jointID_t, dal::jointID_t> make_index_replace_map(
         const scene_t::Skeleton& froskeleton_,
         const scene_t::Skeleton& to_skeleton,
         const JointParentNameManager& jname_manager
     ) {
-        std::unordered_map<dalp::jointID_t, dalp::jointID_t> output;
+        std::unordered_map<dal::jointID_t, dal::jointID_t> output;
         output[-1] = -1;
 
         for (size_t i = 0; i < froskeleton_.joints_.size(); ++i) {
             const auto& froname_ = froskeleton_.joints_[i].name_;
             const auto& to_name = jname_manager.get_replaced_name(froname_);
             const auto to_index = to_skeleton.find_index_by_name(to_name);
-            assert(dalp::NULL_JID != to_index);
+            assert(dal::NULL_JID != to_index);
             output[i] = to_index;
         }
 
@@ -567,7 +565,7 @@ namespace {
         const auto index_replace_map = ::make_index_replace_map(
             skeleton, new_skeleton, joint_parent_names
         );
-        const auto max_j_idx = static_cast<dalp::jointID_t>(
+        const auto max_j_idx = static_cast<dal::jointID_t>(
             new_skeleton.joints_.size()
         );
 
@@ -575,7 +573,7 @@ namespace {
             for (auto& vertex : mesh.vertices_) {
                 for (int i = 0; i < 4; ++i) {
                     const auto jid = vertex.j_indices_[i];
-                    if (dalp::NULL_JID == jid)
+                    if (dal::NULL_JID == jid)
                         continue;
 
                     const auto found = index_replace_map.find(jid);
@@ -886,7 +884,7 @@ namespace {
     };
 
 }  // namespace
-namespace dal::parser {
+namespace dal {
 
     void split_by_transparency(
         SceneIntermediate& scene, const std::vector<std::string>& tex_lookup
@@ -980,10 +978,10 @@ namespace dal::parser {
         return;
     }
 
-}  // namespace dal::parser
+}  // namespace dal
 
 
-namespace dal::parser {
+namespace dal {
 
     // Optimize
 
@@ -1202,4 +1200,4 @@ namespace dal::parser {
         return output;
     }
 
-}  // namespace dal::parser
+}  // namespace dal

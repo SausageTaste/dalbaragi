@@ -101,9 +101,9 @@ namespace {
             }
         }
 
-        const dal::parser::Model* get_dmd() const {
+        const dal::Model* get_dmd() const {
             if (res_data_.index() == 2) {
-                return &std::get<dal::parser::Model>(res_data_);
+                return &std::get<dal::Model>(res_data_);
             } else {
                 return nullptr;
             }
@@ -126,14 +126,14 @@ namespace {
         }
 
         bool try_parse_dmd() {
-            res_data_ = dal::parser::Model{};
-            const auto parse_result = dal::parser::parse_dmd(
-                std::get<dal::parser::Model>(res_data_),
+            res_data_ = dal::Model{};
+            const auto parse_result = dal::parse_dmd(
+                std::get<dal::Model>(res_data_),
                 reinterpret_cast<const uint8_t*>(raw_data_.data()),
                 raw_data_.size()
             );
 
-            if (parse_result != dal::parser::ModelParseResult::success) {
+            if (parse_result != dal::ModelParseResult::success) {
                 res_data_ = std::monostate{};
                 return false;
             }
@@ -151,7 +151,7 @@ namespace {
         std::variant<
             std::monostate,
             std::shared_ptr<dal::IImage>,
-            dal::parser::Model>
+            dal::Model>
             res_data_;
         std::optional<dal::ReqResult> perma_res_ = std::nullopt;
     };
@@ -185,9 +185,9 @@ namespace {
             }
         }
 
-        const dal::parser::Model* get_dmd() const {
+        const dal::Model* get_dmd() const {
             if (res_data_.index() == 2) {
-                return &std::get<dal::parser::Model>(res_data_);
+                return &std::get<dal::Model>(res_data_);
             } else {
                 return nullptr;
             }
@@ -250,14 +250,14 @@ namespace {
         }
 
         bool try_parse_dmd() {
-            res_data_ = dal::parser::Model{};
-            const auto parse_result = dal::parser::parse_dmd(
-                std::get<dal::parser::Model>(res_data_),
+            res_data_ = dal::Model{};
+            const auto parse_result = dal::parse_dmd(
+                std::get<dal::Model>(res_data_),
                 reinterpret_cast<const uint8_t*>(raw_data_.data()),
                 raw_data_.size()
             );
 
-            if (parse_result != dal::parser::ModelParseResult::success) {
+            if (parse_result != dal::ModelParseResult::success) {
                 res_data_ = std::monostate{};
                 return false;
             }
@@ -271,7 +271,7 @@ namespace {
         std::variant<
             std::monostate,
             std::shared_ptr<dal::IImage>,
-            dal::parser::Model>
+            dal::Model>
             res_data_;
         std::optional<dal::ReqResult> result_;
     };
@@ -431,7 +431,7 @@ namespace {
             return std::make_pair(std::ref(*image), std::move(res_pair->first));
         }
 
-        const dal::parser::Model* get_dmd(const fs::path& path) override {
+        const dal::Model* get_dmd(const fs::path& path) override {
             auto item = this->get(path);
             if (!item)
                 return nullptr;

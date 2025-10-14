@@ -7,7 +7,7 @@
 #include "daltools/scene/struct.h"
 
 
-namespace dal::parser {
+namespace dal {
 
     enum class ModelExportResult {
         success,
@@ -25,4 +25,4 @@ namespace dal::parser {
         const Model& input, CompressMethod comp_method
     );
 
-}  // namespace dal::parser
+}  // namespace dal

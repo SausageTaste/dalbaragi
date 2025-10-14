@@ -5,7 +5,7 @@
 
 namespace {
 
-    using scene_t = dal::parser::SceneIntermediate;
+    using scene_t = dal::SceneIntermediate;
 
 
     bool are_similar(float lhs, float rhs, float epsilon) {
@@ -48,7 +48,7 @@ namespace {
 }  // namespace
 
 
-namespace dal::parser {
+namespace dal {
 
     bool Vertex::is_equal(const Vertex& other) const {
         return (
@@ -108,11 +108,11 @@ namespace dal::parser {
         return -1;
     }
 
-}  // namespace dal::parser
+}  // namespace dal
 
 
 // Vertex
-namespace dal::parser {
+namespace dal {
 
     bool scene_t::Vertex::are_same(const scene_t::Vertex& other) const {
         if (this->j_indices_ != other.j_indices_)
@@ -158,11 +158,11 @@ namespace dal::parser {
         throw std::runtime_error{ "Too many joints on vertex" };
     }
 
-}  // namespace dal::parser
+}  // namespace dal
 
 
 //
-namespace dal::parser {
+namespace dal {
 
     bool scene_t::Transform::operator==(const scene_t::Transform& other) const {
         if (this->pos_ != other.pos_)
@@ -360,11 +360,11 @@ namespace dal::parser {
         return true;
     }
 
-}  // namespace dal::parser
+}  // namespace dal
 
 
 // SceneIntermediate
-namespace dal::parser {
+namespace dal {
 
     scene_t::Mesh* scene_t::find_mesh_by_name(const std::string& name) {
         for (auto& mesh : this->meshes_) {
@@ -459,4 +459,4 @@ namespace dal::parser {
         return output;
     }
 
-}  // namespace dal::parser
+}  // namespace dal

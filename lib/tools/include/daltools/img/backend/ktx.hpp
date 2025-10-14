@@ -24,11 +24,11 @@ namespace dal {
         uint32_t base_width() const;
         uint32_t base_height() const;
         // Element size
-        uint32_t esize() ;
+        uint32_t esize();
         // Number of components
-        uint32_t num_cpnts() ;
+        uint32_t num_cpnts();
 
-        bool need_transcoding() ;
+        bool need_transcoding();
         bool transcode(ktx_transcode_fmt_e fmt, ktx_transcode_flags flags = 0);
 
         std::optional<glm::tvec4<uint8_t>> get_base_pixel(

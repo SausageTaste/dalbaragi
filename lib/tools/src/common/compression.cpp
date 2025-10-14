@@ -212,7 +212,7 @@ namespace dal {
         if (result.m_result != CompressResult::success) {
             return std::nullopt;
         } else {
-            dal::parser::BinaryDataArray output;
+            dal::BinaryDataArray output;
             output.append_int64(src.size());
             output.append_array(buffer.data(), result.m_output_size);
             return output.release();
@@ -224,7 +224,7 @@ namespace dal {
     ) {
         constexpr size_t HEADER_SIZE = sizeof(int64_t);
 
-        dal::parser::BinaryArrayParser parser(src.data(), src.size());
+        dal::BinaryArrayParser parser(src.data(), src.size());
         const auto raw_data_size = parser.parse_int64();
         std::vector<uint8_t> buffer(raw_data_size);
 

@@ -3,16 +3,9 @@
 #include <meshoptimizer.h>
 
 
-namespace {
-
-    namespace dalp = dal::parser;
-
-}
-
-
 namespace dal {
 
-    void optimize_vertex_cache(dalp::SceneIntermediate::Mesh& mesh) {
+    void optimize_vertex_cache(dal::SceneIntermediate::Mesh& mesh) {
         std::vector<size_t> new_indices(mesh.indices_.size());
         meshopt_optimizeVertexCache(
             new_indices.data(),
@@ -23,20 +16,20 @@ namespace dal {
         std::swap(mesh.indices_, new_indices);
     }
 
-    void optimize_vertex_overdraw(dalp::SceneIntermediate::Mesh& mesh) {
+    void optimize_vertex_overdraw(dal::SceneIntermediate::Mesh& mesh) {
         meshopt_optimizeOverdraw(
             mesh.indices_.data(),
             mesh.indices_.data(),
             mesh.indices_.size(),
             &mesh.vertices_[0].pos_.x,
             mesh.vertices_.size(),
-            sizeof(dalp::SceneIntermediate::Vertex),
+            sizeof(dal::SceneIntermediate::Vertex),
             1.05f
         );
     }
 
-    void optimize_vertex_fetch(dalp::SceneIntermediate::Mesh& mesh) {
-        std::vector<dalp::SceneIntermediate::Vertex> vertices(
+    void optimize_vertex_fetch(dal::SceneIntermediate::Mesh& mesh) {
+        std::vector<dal::SceneIntermediate::Vertex> vertices(
             mesh.vertices_.size()
         );
 
@@ -46,7 +39,7 @@ namespace dal {
             mesh.indices_.size(),
             mesh.vertices_.data(),
             mesh.vertices_.size(),
-            sizeof(dalp::SceneIntermediate::Vertex)
+            sizeof(dal::SceneIntermediate::Vertex)
         );
 
         vertices.resize(resulting_vert_count);

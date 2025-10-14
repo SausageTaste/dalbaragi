@@ -5,7 +5,7 @@
 #include "daltools/scene/struct.h"
 
 
-namespace dal::parser {
+namespace dal {
 
     namespace fs = std::filesystem;
 
@@ -30,7 +30,7 @@ namespace dal::parser {
 
     enum class JointReductionResult { success, fail, needless };
 
-    JointReductionResult reduce_joints(dal::parser::Model& model);
+    JointReductionResult reduce_joints(dal::Model& model);
 
 
     // Optimize
@@ -77,4 +77,4 @@ namespace dal::parser {
 
     Model convert_to_model_dmd(const SceneIntermediate& scene);
 
-}  // namespace dal::parser
+}  // namespace dal

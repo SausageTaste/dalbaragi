@@ -6,7 +6,7 @@
 #include <vector>
 
 
-namespace dal::parser {
+namespace dal {
 
     bool is_big_endian();
 
@@ -28,15 +28,14 @@ namespace dal::parser {
 
         T res;
 
-        if ( is_big_endian() ) {
+        if (is_big_endian()) {
             uint8_t buf[4];
             buf[0] = begin[3];
             buf[1] = begin[2];
             buf[2] = begin[1];
             buf[3] = begin[0];
             memcpy(&res, buf, 4);
-        }
-        else {
+        } else {
             memcpy(&res, begin, 4);
         }
 
@@ -44,11 +43,13 @@ namespace dal::parser {
     }
 
     template <typename T>
-    const uint8_t* assemble_4_bytes_array(const uint8_t* src, T* const dst, const size_t element_size) {
+    const uint8_t* assemble_4_bytes_array(
+        const uint8_t* src, T* const dst, const size_t element_size
+    ) {
         static_assert(4 == sizeof(T));
         const auto copy_size = 4 * element_size;
 
-//*/
+        //*/
         if (is_big_endian()) {
             const auto dst_loc = reinterpret_cast<uint8_t*>(dst);
 
@@ -58,16 +59,15 @@ namespace dal::parser {
                 dst_loc[4 * i + 2] = src[4 * i + 1];
                 dst_loc[4 * i + 3] = src[4 * i + 0];
             }
-        }
-        else {
+        } else {
             const auto copy_size = 4 * element_size;
             memcpy(dst, src, copy_size);
         }
-/*/
+        /*/
         for ( size_t i = 0; i < size; ++i ) {
             dst[i] = assemble_4_bytes<T>(src);
         }
-//*/
+        //*/
 
         return src + copy_size;
     }
@@ -79,7 +79,7 @@ namespace dal::parser {
 
         T res;
 
-        if ( is_big_endian() ) {
+        if (is_big_endian()) {
             uint8_t buf[8];
             buf[0] = begin[7];
             buf[1] = begin[6];
@@ -90,8 +90,7 @@ namespace dal::parser {
             buf[6] = begin[1];
             buf[7] = begin[0];
             memcpy(&res, buf, 8);
-        }
-        else {
+        } else {
             memcpy(&res, begin, 8);
         }
 
@@ -124,9 +123,7 @@ namespace dal::parser {
 
         void reserve(const size_t reserve_size);
 
-        auto&& release() {
-            return std::move(this->m_vector);
-        }
+        auto&& release() { return std::move(this->m_vector); }
 
         void push_back(const uint8_t v);
 
@@ -138,9 +135,7 @@ namespace dal::parser {
         template <typename T>
         void append_array(const T* const array, const size_t size) {
             if (is_big_endian()) {
-
-            }
-            else {
+            } else {
                 const auto begin = reinterpret_cast<const uint8_t*>(array);
                 const auto end = begin + (sizeof(T) * size);
                 this->m_vector.insert(this->m_vector.end(), begin, end);
@@ -151,20 +146,25 @@ namespace dal::parser {
 
         void append_int32(const int32_t v);
 
-        void append_int32_array(const int32_t* const arr, const size_t arr_size);
+        void append_int32_array(
+            const int32_t* const arr, const size_t arr_size
+        );
 
         void append_int64(const int64_t v);
 
         void append_float32(const float v);
 
-        void append_float32_array(const float* const arr, const size_t arr_size);
+        void append_float32_array(
+            const float* const arr, const size_t arr_size
+        );
 
         void append_char(const char c);
 
-        void append_null_terminated_str(const char* const str, const size_t str_size);
+        void append_null_terminated_str(
+            const char* const str, const size_t str_size
+        );
 
         void append_str(const std::string& str);
-
     };
 
 
@@ -180,16 +180,12 @@ namespace dal::parser {
 
         BinaryArrayParser(const std::vector<uint8_t>& vector);
 
-        bool is_emtpy() const {
-            return this->m_size == this->pos_;
-        }
+        bool is_emtpy() const { return this->m_size == this->pos_; }
 
         template <typename T>
         void parse_array(T* const dst_arr, const size_t element_count) {
             if (is_big_endian()) {
-
-            }
-            else {
+            } else {
                 const auto parse_size = element_count * sizeof(T);
                 std::memcpy(dst_arr, this->m_array + this->pos_, parse_size);
                 this->pos_ += parse_size;
@@ -218,7 +214,6 @@ namespace dal::parser {
         char parse_char();
 
         std::string parse_str();
-
     };
 
-}
+}  // namespace dal

@@ -28,4 +28,4 @@ namespace dal {
         size_t size_ = 0;
     };
 
-}  // namespace dal::parser
+}  // namespace dal
