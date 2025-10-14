@@ -212,27 +212,14 @@ namespace {
                         auto& src_vert = src_mesh->vertices_[src_index];
 
                         dalp::VertexJoint vertex;
+                        vertex.joint_indices_ = src_vert.j_indices_;
+                        vertex.joint_weights_ = src_vert.j_weights_;
                         vertex.pos_ = actor_mat4 *
                                       glm::vec4{ src_vert.pos_, 1 };
                         vertex.uv_ = src_vert.uv_;
                         vertex.normal_ = glm::normalize(
                             actor_mat3 * src_vert.normal_
                         );
-
-                        const int valid_joint_count = std::min<int>(
-                            4, src_vert.joints_.size()
-                        );
-                        for (int i = 0; i < valid_joint_count; ++i) {
-                            vertex.joint_indices_[i] =
-                                src_vert.joints_[i].index_;
-                            vertex.joint_weights_[i] =
-                                src_vert.joints_[i].weight_;
-                        }
-                        for (int i = valid_joint_count;
-                             i < dalp::NUM_JOINTS_PER_VERTEX;
-                             ++i) {
-                            vertex.joint_indices_[i] = dalp::NULL_JID;
-                        }
 
                         dst_pair.mesh_.add_vertex(vertex);
                     }
@@ -580,17 +567,24 @@ namespace {
         const auto index_replace_map = ::make_index_replace_map(
             skeleton, new_skeleton, joint_parent_names
         );
+        const auto max_j_idx = static_cast<dalp::jointID_t>(
+            new_skeleton.joints_.size()
+        );
 
         for (auto& mesh : meshes) {
             for (auto& vertex : mesh.vertices_) {
-                for (auto& joint : vertex.joints_) {
-                    const auto new_index =
-                        index_replace_map.find(joint.index_)->second;
-                    assert(-1 <= new_index);
-                    assert(
-                        new_index < (dalp::jointID_t)new_skeleton.joints_.size()
-                    );
-                    joint.index_ = new_index;
+                for (int i = 0; i < 4; ++i) {
+                    const auto jid = vertex.j_indices_[i];
+                    if (dalp::NULL_JID == jid)
+                        continue;
+
+                    const auto found = index_replace_map.find(jid);
+                    assert(index_replace_map.end() != found);
+
+                    const auto new_idx = found->second;
+                    assert(-1 <= new_idx);
+                    assert(max_j_idx > new_idx);
+                    vertex.j_indices_[i] = new_idx;
                 }
             }
         }

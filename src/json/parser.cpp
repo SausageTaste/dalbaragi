@@ -322,11 +322,12 @@ namespace {
                 ptr += 4;
 
                 for (size_t j = 0; j < joint_count; ++j) {
-                    auto& joint = vertex.joints_.emplace_back();
-                    joint.index_ = dalp::make_int32(ptr);
+                    const auto idx = dalp::make_int32(ptr);
                     ptr += 4;
-                    joint.weight_ = dalp::make_float32(ptr);
+                    const auto weight = dalp::make_float32(ptr);
                     ptr += 4;
+
+                    vertex.add_joint(idx, weight);
                 }
             }
 

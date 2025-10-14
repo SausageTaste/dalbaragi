@@ -66,17 +66,20 @@ namespace dal::parser {
         };
 
 
-        struct Vertex {
-
-        public:
-            glm::vec3 pos_;
-            glm::vec2 uv_;
-            glm::vec3 normal_;
-            std::vector<VertexJointPair> joints_;
+        class Vertex {
 
         public:
             bool are_same(const Vertex& other) const;
-            bool are_similar(const Vertex& rhs) const;
+            bool are_similar(const Vertex& rhs, float eps = 1e-4f) const;
+
+            void add_joint(jointID_t index, float weight);
+
+        public:
+            glm::ivec4 j_indices_{ NULL_JID };
+            glm::vec4 j_weights_{ 0 };
+            glm::vec3 pos_;
+            glm::vec2 uv_;
+            glm::vec3 normal_;
         };
 
 

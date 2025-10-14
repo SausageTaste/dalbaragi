@@ -5,6 +5,9 @@
 
 namespace {
 
+    using scene_t = dal::parser::SceneIntermediate;
+
+
     bool are_similar(float lhs, float rhs, float epsilon) {
         return std::abs(lhs - rhs) <= epsilon;
     }
@@ -24,6 +27,19 @@ namespace {
         if (!are_similar(lhs.y, rhs.y, eps))
             return false;
         if (!are_similar(lhs.z, rhs.z, eps))
+            return false;
+
+        return true;
+    }
+
+    bool are_similar(const glm::vec4& lhs, const glm::vec4& rhs, float eps) {
+        if (!are_similar(lhs.x, rhs.x, eps))
+            return false;
+        if (!are_similar(lhs.y, rhs.y, eps))
+            return false;
+        if (!are_similar(lhs.z, rhs.z, eps))
+            return false;
+        if (!are_similar(lhs.w, rhs.w, eps))
             return false;
 
         return true;
@@ -95,11 +111,58 @@ namespace dal::parser {
 }  // namespace dal::parser
 
 
-//
+// Vertex
 namespace dal::parser {
 
-    using scene_t = dal::parser::SceneIntermediate;
+    bool scene_t::Vertex::are_same(const scene_t::Vertex& other) const {
+        if (this->j_indices_ != other.j_indices_)
+            return false;
+        if (this->j_weights_ != other.j_weights_)
+            return false;
+        if (this->pos_ != other.pos_)
+            return false;
+        if (this->normal_ != other.normal_)
+            return false;
+        if (this->uv_ != other.uv_)
+            return false;
 
+        return true;
+    }
+
+    bool scene_t::Vertex::are_similar(
+        const scene_t::Vertex& rhs, float eps
+    ) const {
+        if (j_indices_ != rhs.j_indices_)
+            return false;
+        if (!::are_similar(j_weights_, rhs.j_weights_, eps))
+            return false;
+        if (!::are_similar(pos_, rhs.pos_, eps))
+            return false;
+        if (!::are_similar(normal_, rhs.normal_, eps))
+            return false;
+        if (!::are_similar(uv_, rhs.uv_, eps))
+            return false;
+
+        return true;
+    }
+
+    void scene_t::Vertex::add_joint(jointID_t index, float weight) {
+        for (int i = 0; i < 4; ++i) {
+            if (j_indices_[i] == NULL_JID) {
+                j_indices_[i] = index;
+                j_weights_[i] = weight;
+                return;
+            }
+        }
+
+        throw std::runtime_error{ "Too many joints on vertex" };
+    }
+
+}  // namespace dal::parser
+
+
+//
+namespace dal::parser {
 
     bool scene_t::Transform::operator==(const scene_t::Transform& other) const {
         if (this->pos_ != other.pos_)
@@ -124,59 +187,6 @@ namespace dal::parser {
         const auto rotation = glm::mat4_cast(this->quat_);
         const auto translation = glm::translate(glm::mat4{ 1 }, this->pos_);
         return translation * rotation * scale;
-    }
-
-
-    bool scene_t::Vertex::are_same(const scene_t::Vertex& other) const {
-        if (this->pos_ != other.pos_)
-            return false;
-        if (this->normal_ != other.normal_)
-            return false;
-        if (this->uv_ != other.uv_)
-            return false;
-
-        if (this->joints_.size() != other.joints_.size())
-            return false;
-
-        const auto joint_count = this->joints_.size();
-        for (size_t i = 0; i < joint_count; ++i) {
-            auto& j0 = this->joints_[i];
-            auto& j1 = other.joints_[i];
-
-            if (j0.index_ != j1.index_)
-                return false;
-            if (j0.weight_ != j1.weight_)
-                return false;
-        }
-
-        return true;
-    }
-
-    bool scene_t::Vertex::are_similar(const scene_t::Vertex& rhs) const {
-        constexpr auto EPSILON = 1e-4f;
-
-        if (!::are_similar(this->pos_, rhs.pos_, EPSILON))
-            return false;
-        if (!::are_similar(this->normal_, rhs.normal_, EPSILON))
-            return false;
-        if (!::are_similar(this->uv_, rhs.uv_, EPSILON))
-            return false;
-
-        if (this->joints_.size() != rhs.joints_.size())
-            return false;
-
-        const auto joint_count = this->joints_.size();
-        for (size_t i = 0; i < joint_count; ++i) {
-            auto& j0 = this->joints_[i];
-            auto& j1 = rhs.joints_[i];
-
-            if (j0.index_ != j1.index_)
-                return false;
-            if (!::are_similar(j0.weight_, j1.weight_, EPSILON))
-                return false;
-        }
-
-        return true;
     }
 
 
