@@ -23,7 +23,6 @@ endif()
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/sungtools)
 
-find_package(argparse CONFIG REQUIRED)
 find_package(base64 CONFIG REQUIRED)
 find_package(enkiTS CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -46,6 +45,7 @@ if (DAL_BUILD_TOOLS_LIB)
 endif()
 
 if (DAL_BUILD_APP)
+    find_package(argparse CONFIG REQUIRED)
     add_subdirectory(./app)
 endif()
 
