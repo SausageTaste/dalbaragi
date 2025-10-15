@@ -10,8 +10,13 @@ project(dalbaragi
 )
 
 
+set(DAL_BUILD_TOOLS_LIB OFF CACHE BOOL "Build dalbaragi tools static library")
 set(DAL_BUILD_APP OFF CACHE BOOL "Build projects in app folder")
-set(DAL_ENABLE_TEST OFF CACHE BOOL "Enable testing")
+set(DAL_BUILD_TEST OFF CACHE BOOL "Enable testing")
+
+if (DAL_BUILD_APP OR DAL_BUILD_TEST)
+    set(DAL_BUILD_TOOLS_LIB ON)
+endif()
 
 
 # ------------------------------------------------------------------------------
@@ -33,16 +38,18 @@ add_subdirectory(lib/parser)
 
 # ------------------------------------------------------------------------------
 
-if (DAL_BUILD_APP)
+if (DAL_BUILD_TOOLS_LIB)
     find_package(meshoptimizer CONFIG REQUIRED)
     find_package(nlohmann_json CONFIG REQUIRED)
     find_package(yaml-cpp CONFIG REQUIRED)
-
     add_subdirectory(lib/tools)
+endif()
+
+if (DAL_BUILD_APP)
     add_subdirectory(./app)
 endif()
 
-if (DAL_ENABLE_TEST)
+if (DAL_BUILD_TEST)
     enable_testing()
     find_package(GTest CONFIG REQUIRED)
     add_subdirectory(./test)
