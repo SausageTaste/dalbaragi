@@ -202,6 +202,82 @@ namespace {
     };
 
 
+    class JointWeightAssembler {
+
+    public:
+        void reserve(const size_t count) { joints_.reserve(count); }
+
+        template <typename T>
+        void add_joint(dal::jointID_t index, T weight) {
+            auto& j = joints_.emplace_back();
+            j.index_ = index;
+            j.weight_ = static_cast<double>(weight);
+        }
+
+        void post_process() {
+            std::sort(
+                joints_.begin(),
+                joints_.end(),
+                [](const Joint& a, const Joint& b) {
+                    return a.weight_ > b.weight_;
+                }
+            );
+
+            if (joints_.size() > dal::NUM_JOINTS_PER_VERTEX) {
+                joints_.resize(dal::NUM_JOINTS_PER_VERTEX);
+            }
+
+            const auto weight_sum = this->calc_weight_sum();
+            if (weight_sum > 0) {
+                const auto scalar = 1.0 / weight_sum;
+                for (auto& j : joints_) {
+                    j.weight_ *= scalar;
+                }
+            } else {
+                const auto default_weight = 1.0 / joints_.size();
+                for (auto& j : joints_) {
+                    j.weight_ = default_weight;
+                }
+            }
+        }
+
+        void get_weights(glm::ivec4& indices, glm::vec4& weights) const {
+            constexpr uint32_t MAX_JOINTS = 4;
+            const auto count = std::min<uint32_t>(MAX_JOINTS, this->size());
+
+            for (uint32_t i = 0; i < count; ++i) {
+                auto& src_joint = joints_[i];
+
+                indices[i] = src_joint.index_;
+                weights[i] = static_cast<float>(src_joint.weight_);
+            }
+
+            for (uint32_t i = count; i < MAX_JOINTS; ++i) {
+                indices[i] = dal::NULL_JID;
+                weights[i] = 0.f;
+            }
+        }
+
+    private:
+        struct Joint {
+            dal::jointID_t index_;
+            double weight_;
+        };
+
+        double calc_weight_sum() const {
+            double sum = 0;
+            for (const auto& j : joints_) {
+                sum += j.weight_;
+            }
+            return sum;
+        }
+
+        uint32_t size() const { return static_cast<uint32_t>(joints_.size()); }
+
+        std::vector<Joint> joints_;
+    };
+
+
     void parse_vec3(const json_t& json_data, glm::vec3& output) {
         output[0] = json_data[0];
         output[1] = json_data[1];
@@ -320,14 +396,20 @@ namespace {
                 const auto joint_count = dal::make_int32(ptr);
                 ptr += 4;
 
+                ::JointWeightAssembler assembler;
+                assembler.reserve(joint_count);
+
                 for (size_t j = 0; j < joint_count; ++j) {
                     const auto idx = dal::make_int32(ptr);
                     ptr += 4;
                     const auto weight = dal::make_float32(ptr);
                     ptr += 4;
 
-                    vertex.add_joint(idx, weight);
+                    assembler.add_joint(idx, weight);
                 }
+
+                assembler.post_process();
+                assembler.get_weights(vertex.j_indices_, vertex.j_weights_);
             }
 
             assert(ptr == binary_data.ptr_at(bin_pos + bin_size));

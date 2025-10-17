@@ -146,18 +146,6 @@ namespace dal {
         return true;
     }
 
-    void scene_t::Vertex::add_joint(jointID_t index, float weight) {
-        for (int i = 0; i < 4; ++i) {
-            if (j_indices_[i] == NULL_JID) {
-                j_indices_[i] = index;
-                j_weights_[i] = weight;
-                return;
-            }
-        }
-
-        throw std::runtime_error{ "Too many joints on vertex" };
-    }
-
 }  // namespace dal
 
 
