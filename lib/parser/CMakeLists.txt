@@ -38,3 +38,6 @@ target_link_libraries(dalbaragi_parser PUBLIC
     unofficial::brotli::brotlidec
     ZLIB::ZLIB
 )
+set_target_properties(dalbaragi_parser PROPERTIES
+    FOLDER "dalbaragi"
+)

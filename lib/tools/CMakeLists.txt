@@ -26,3 +26,6 @@ target_link_libraries(dalbaragi_tools PUBLIC
     unofficial::brotli::brotlienc
     yaml-cpp::yaml-cpp
 )
+set_target_properties(dalbaragi_tools PROPERTIES
+    FOLDER "dalbaragi"
+)
