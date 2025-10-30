@@ -128,10 +128,16 @@ namespace {
             ASSERT_EQ(scenes.size(), 1);
             fmt::print(" - Json parsed ({:.2f})\n", timer.check_get_elapsed());
 
+            const std::vector<std::string> tex_lookup_paths{
+                json_path.parent_path().u8string()
+            };
             for (auto& scene : scenes) {
-                dal::flip_uv_vertically(scene);
+                for (auto& mesh : scene.meshes_) {
+                    dal::flip_uv_vertically(mesh);
+                }
+
                 dal::clear_collection_info(scene);
-                dal::optimize_scene(scene, json_path);
+                dal::optimize_scene(scene, tex_lookup_paths);
             }
             fmt::print(" - Optimzied ({:.2f})\n", timer.check_get_elapsed());
 
