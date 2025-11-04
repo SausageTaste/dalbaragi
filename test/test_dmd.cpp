@@ -6,6 +6,7 @@
 #include "daltools/common/byte_tool.h"
 #include "daltools/dmd/exporter.h"
 #include "daltools/dmd/parser.h"
+#include "daltools/filesys/path.hpp"
 #include "daltools/scene/modifier.h"
 
 
@@ -48,7 +49,7 @@ namespace {
         for (int i = 0; i < DEPTH; ++i) {
             for (const auto& entry :
                  std::filesystem::directory_iterator(current_dir)) {
-                if (entry.path().filename().u8string() == ".git") {
+                if (dal::tostr(entry.path().filename()) == ".git") {
                     return std::filesystem::absolute(current_dir);
                 }
             }

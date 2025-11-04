@@ -13,7 +13,6 @@ set(source_files
 
 add_library(dalbaragi_tools STATIC ${source_files})
 add_library(dalbaragi::dalbaragi_tools ALIAS dalbaragi_tools)
-target_compile_features(dalbaragi_tools PUBLIC cxx_std_17)
 
 target_include_directories(dalbaragi_tools PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include

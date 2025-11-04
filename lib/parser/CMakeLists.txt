@@ -11,6 +11,7 @@ set(source_files
     ${source_dir}/common/util.cpp
     ${source_dir}/dmd/parser.cpp
     ${source_dir}/filesys/filesys.cpp
+    ${source_dir}/filesys/path.cpp
     ${source_dir}/filesys/res_mgr.cpp
     ${source_dir}/img/backend/ktx.cpp
     ${source_dir}/img/backend/stb.cpp
@@ -21,7 +22,7 @@ set(source_files
 
 add_library(dalbaragi_parser STATIC ${source_files})
 add_library(dalbaragi::dalbaragi_parser ALIAS dalbaragi_parser)
-target_compile_features(dalbaragi_parser PUBLIC cxx_std_17)
+target_compile_features(dalbaragi_parser PUBLIC cxx_std_20)
 
 target_include_directories(dalbaragi_parser PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include

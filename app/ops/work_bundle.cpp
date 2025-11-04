@@ -11,6 +11,7 @@
 
 #include "daltools/bundle/bundle.hpp"
 #include "daltools/common/decompress.hpp"
+#include "daltools/filesys/path.hpp"
 
 
 namespace fs = std::filesystem;
@@ -44,14 +45,14 @@ namespace {
     fs::path select_not_colliding_folder_name(
         const fs::path& loc, const std::string& base_name
     ) {
-        const auto folder_path = loc / fs::u8path(base_name);
+        const auto folder_path = loc / dal::u8path(base_name);
         if (!fs::exists(folder_path)) {
             return fs::absolute(folder_path);
         }
 
         for (int i = 0; i < 1000; ++i) {
             const auto name = fmt::format("{}_{:0>3}", base_name, i);
-            const auto folder_path = loc / fs::u8path(name);
+            const auto folder_path = loc / dal::u8path(name);
             if (!fs::exists(folder_path)) {
                 return fs::absolute(folder_path);
             }
@@ -378,7 +379,7 @@ namespace dal {
                     const auto [offset, size] = offset_size;
                     const auto begin = data_block->data() + offset;
 
-                    const auto out_path = out_dir / fs::u8path(name);
+                    const auto out_path = out_dir / dal::u8path(name);
                     ::save_file(out_path, begin, size);
                     ++count;
                 }

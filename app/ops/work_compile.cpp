@@ -11,6 +11,7 @@
 #include "daltools/common/konst.h"
 #include "daltools/dmd/exporter.h"
 #include "daltools/dmd/parser.h"
+#include "daltools/filesys/path.hpp"
 #include "daltools/json/parser.h"
 #include "daltools/scene/modifier.h"
 
@@ -71,7 +72,7 @@ namespace {
             result = parse_json(scenes, *json_data);
         }
 
-        std::vector<std::string> tex_lookup_paths{ src_path.u8string() };
+        std::vector<std::string> tex_lookup_paths{ dal::tostr(src_path) };
 
         for (auto& scene : scenes) {
             for (auto& mesh : scene.meshes_) {
@@ -87,7 +88,7 @@ namespace {
         std::filesystem::path output_path = src_path;
         output_path.replace_extension("dmd");
 
-        std::ofstream file(output_path.u8string().c_str(), std::ios::binary);
+        std::ofstream file(output_path, std::ios::binary);
         file.write((const char*)bin_built->data(), bin_built->size());
         file.close();
     }

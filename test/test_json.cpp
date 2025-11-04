@@ -9,6 +9,7 @@
 #include "daltools/common/util.h"
 #include "daltools/dmd/exporter.h"
 #include "daltools/dmd/parser.h"
+#include "daltools/filesys/path.hpp"
 #include "daltools/json/parser.h"
 #include "daltools/scene/modifier.h"
 
@@ -31,7 +32,7 @@ namespace {
 
         for (int i = 0; i < DEPTH; ++i) {
             for (const auto& entry : fs::directory_iterator(current_dir)) {
-                if (entry.path().filename().u8string() == ".git") {
+                if (dal::tostr(entry.path().filename()) == ".git") {
                     return fs::absolute(current_dir);
                 }
             }
@@ -103,9 +104,9 @@ namespace {
                 json_path
             );
             ASSERT_TRUE(file_content.has_value())
-                << "Failed to read file: " << json_path.u8string();
+                << "Failed to read file: " << dal::tostr(json_path);
 
-            fmt::print("Testing: {}\n", json_path.u8string());
+            fmt::print("Testing: {}\n", dal::tostr(json_path));
             sung::MonotonicRealtimeTimer timer;
 
             // Replace extension from .json to .bin
@@ -129,7 +130,7 @@ namespace {
             fmt::print(" - Json parsed ({:.2f})\n", timer.check_get_elapsed());
 
             const std::vector<std::string> tex_lookup_paths{
-                json_path.parent_path().u8string()
+                dal::tostr(json_path.parent_path())
             };
             for (auto& scene : scenes) {
                 for (auto& mesh : scene.meshes_) {
@@ -163,14 +164,14 @@ namespace {
             const auto similarity = compare_binary_buffers(*binary1, *binary2);
             ASSERT_DOUBLE_EQ(1.0, similarity) << fmt::format(
                 "Binary results are different: {} ({})",
-                json_path.u8string(),
+                dal::tostr(json_path),
                 similarity
             );
 
             const auto end_time = ::time_sec();
             const auto elapsed_time = end_time - start_time;
             fmt::print(
-                "Test passed: {} ({} ms)\n", json_path.u8string(), elapsed_time
+                "Test passed: {} ({} ms)\n", dal::tostr(json_path), elapsed_time
             );
         }
     }

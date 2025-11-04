@@ -6,6 +6,8 @@
 
 #include <spdlog/fmt/fmt.h>
 
+#include "daltools/filesys/path.hpp"
+
 
 namespace {
 
@@ -43,7 +45,7 @@ namespace dal {
 
         for (int i = 0; i < 10; ++i) {
             for (const auto& entry : fs::directory_iterator(current_dir)) {
-                if (entry.path().filename().u8string() == ".git") {
+                if (dal::tostr(entry.path().filename()) == ".git") {
                     return current_dir;
                 }
             }

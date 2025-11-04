@@ -24,7 +24,7 @@ namespace {
         };
 
         for (const auto& [type, ext_set] : exts) {
-            if (ext_set.find(path.extension().u8string()) != ext_set.end())
+            if (ext_set.find(dal::tostr(path.extension())) != ext_set.end())
                 return type;
         }
 

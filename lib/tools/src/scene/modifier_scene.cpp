@@ -10,6 +10,7 @@
 #include <sung/basic/geometry2d.hpp>
 
 #include "daltools/common/glm_tool.hpp"
+#include "daltools/filesys/path.hpp"
 #include "daltools/img/backend/ktx.hpp"
 #include "daltools/img/img.hpp"
 #include "daltools/img/img2d.hpp"
@@ -533,7 +534,7 @@ namespace {
             const auto& to_name = jname_manager.get_replaced_name(froname_);
             const auto to_index = to_skeleton.find_index_by_name(to_name);
             assert(dal::NULL_JID != to_index);
-            output[i] = to_index;
+            output[static_cast<dal::jointID_t>(i)] = to_index;
         }
 
         return output;
@@ -607,7 +608,7 @@ namespace {
         if (img_name[0] == '/' && img_name[1] == '/')
             img_name = img_name.substr(2);
 
-        const auto img_name_path = fs::u8path(img_name);
+        const auto img_name_path = dal::u8path(img_name);
 
         {
             const auto img_path = img_name_path;
@@ -616,7 +617,7 @@ namespace {
         }
 
         for (const auto& path : paths) {
-            const auto img_path = fs::u8path(path) / img_name_path;
+            const auto img_path = dal::u8path(path) / img_name_path;
             if (fs::is_regular_file(img_path))
                 return img_path;
         }
@@ -924,7 +925,7 @@ namespace dal {
                     continue;
 
                 dal::ImageParseInfo pinfo;
-                pinfo.file_path_ = img_path.value().u8string();
+                pinfo.file_path_ = dal::tostr(img_path.value());
                 pinfo.data_ = img_file_content->data();
                 pinfo.size_ = img_file_content->size();
                 auto img = dal::parse_img(pinfo);

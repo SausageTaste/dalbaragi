@@ -3,6 +3,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define SPDLOG_ACTIVE_LEVEL 0
 
+#include <fstream>
 #include <map>
 #include <optional>
 #include <set>
@@ -14,8 +15,6 @@
 #include <stb_image.h>
 #include <stb_image_write.h>
 #include <yaml-cpp/yaml.h>
-#include <filesystem>
-#include <fstream>
 #include <sung/basic/byte_arr.hpp>
 #include <sung/basic/stringtool.hpp>
 #include <sung/basic/time.hpp>
@@ -24,6 +23,7 @@
 #include "daltools/common/err_msg_holder.hpp"
 #include "daltools/common/task_sys.hpp"
 #include "daltools/dmd/exporter.h"
+#include "daltools/filesys/path.hpp"
 #include "daltools/json/parser.h"
 #include "daltools/scene/mesh_opt.hpp"
 #include "daltools/scene/modifier.h"
@@ -47,7 +47,7 @@ namespace fmt {
         : fmt::formatter<std::string_view> {
         template <typename FormatContext>
         auto format(const std::filesystem::path& p, FormatContext& ctx) const {
-            return fmt::formatter<std::string_view>::format(p.u8string(), ctx);
+            return fmt::formatter<std::string_view>::format(dal::tostr(p), ctx);
         }
     };
 
@@ -61,7 +61,7 @@ namespace {
 
     fs::path find_yml_path(int argc, char* argv[]) {
         if (argc >= 3) {
-            return fs::u8path(argv[2]);
+            return dal::u8path(argv[2]);
         } else if (argc >= 2) {
             return "dalbatch.yml";
         } else {
@@ -185,11 +185,8 @@ namespace {
     class TimerLogger {
 
     public:
-        template <typename... Args>
-        void log(const char* fmt, Args&&... args) {
-            auto msg = fmt::format(fmt, std::forward<Args>(args)...);
-            msg += fmt::format(" ({:.3f} sec)", timer_.check_get_elapsed());
-            SPDLOG_INFO(msg);
+        void log(const char* text) {
+            SPDLOG_INFO("{} ({:.3f} sec)", text, timer_.check_get_elapsed());
         }
 
     private:
@@ -248,7 +245,7 @@ namespace {
         }
 
         void notify_root(const fs::path& root) {
-            texture_lookup_paths_.emplace_back(root.u8string());
+            texture_lookup_paths_.emplace_back(dal::tostr(root));
         }
 
         fs::path find_tex_file(
@@ -263,7 +260,7 @@ namespace {
                     THROWF("Texture lookup path is not a directory: {}\n", lup);
                 }
 
-                const auto tex_path = lup_resolved / fs::u8path(src);
+                const auto tex_path = lup_resolved / dal::u8path(src);
                 if (fs::exists(tex_path)) {
                     return tex_path;
                 }
@@ -277,7 +274,7 @@ namespace {
             }
 
             {
-                const auto tex_path = fs::u8path(src);
+                const auto tex_path = dal::u8path(src);
                 if (fs::exists(tex_path)) {
                     return tex_path;
                 }
@@ -288,7 +285,7 @@ namespace {
         }
 
         const Texture* find_tex_entry(std::string name) const {
-            name = fs::u8path(name).filename().u8string();
+            name = dal::tostr(dal::u8path(name).filename());
 
             for (const auto& tex : textures_) {
                 if (::match_pattern(name, tex.name_)) {
@@ -300,7 +297,7 @@ namespace {
         }
 
         bool has_tex(std::string name) const {
-            name = fs::u8path(name).filename().u8string();
+            name = dal::tostr(dal::u8path(name).filename());
 
             for (const auto& tex : textures_) {
                 if (::match_pattern(name, tex.name_)) {
@@ -391,7 +388,7 @@ namespace {
 
     public:
         void insert(const fs::path& path) {
-            const auto name = path.filename().u8string();
+            const auto name = dal::tostr(path.filename());
             if (data_.find(name) != data_.end()) {
                 THROWF("Duplicated file name: {}\n", name);
             }
@@ -425,7 +422,7 @@ namespace {
         }
 
         bool add_file(const fs::path& path) {
-            const auto name = path.filename().u8string();
+            const auto name = dal::tostr(path.filename());
             if (added_names_.find(name) != added_names_.end()) {
                 return false;
             } else {
@@ -434,7 +431,7 @@ namespace {
 
             const auto content = ::read_file(path);
             if (!content)
-                THROWF("Failed to read file: {}\n", path.u8string());
+                THROWF("Failed to read file: {}\n", dal::tostr(path));
 
             return this->add_data(name, *content);
         }
@@ -521,7 +518,7 @@ namespace {
         void ExecuteRange(
             enki::TaskSetPartition range_, uint32_t threadnum_
         ) override {
-            const auto path_str = paths_.yam().u8string();
+            const auto path_str = dal::tostr(paths_.yam());
 
             std::ifstream file{ paths_.yam() };
             if (!file.is_open())
@@ -576,7 +573,7 @@ namespace {
         void ExecuteRange(
             enki::TaskSetPartition range_, uint32_t threadnum_
         ) override {
-            const auto u8path = fs::u8path(dmd_def_->path_);
+            const auto u8path = dal::u8path(dmd_def_->path_);
             const auto json_path = ::resolve_path(u8path, paths_->root());
 
             const auto json_data = ::read_file(json_path);
@@ -708,12 +705,12 @@ namespace {
             );
             timer.log("DMD Build binary data");
 
-            const auto u8path = fs::u8path(dmd_def_->path_);
+            const auto u8path = dal::u8path(dmd_def_->path_);
             output_path_ = out_dir_ / "dmd" / u8path.filename();
             output_path_.replace_extension(".dmd");
             if (!::write_file(output_path_, *bin_built))
                 return this->fail(
-                    "Failed to write file: " + output_path_.u8string()
+                    "Failed to write file: " + dal::tostr(output_path_)
                 );
 
             return this->success();
@@ -737,11 +734,14 @@ namespace {
             if (work_def_->has_tex(m.roughness_map_))
                 m.roughness_map_ = ::replace_ext(m.roughness_map_, "ktx");
 
-            m.albedo_map_ = fs::u8path(m.albedo_map_).filename().u8string();
-            m.normal_map_ = fs::u8path(m.normal_map_).filename().u8string();
-            m.metallic_map_ = fs::u8path(m.metallic_map_).filename().u8string();
-            m.roughness_map_ =
-                fs::u8path(m.roughness_map_).filename().u8string();
+            m.albedo_map_ = dal::tostr(dal::u8path(m.albedo_map_).filename());
+            m.normal_map_ = dal::tostr(dal::u8path(m.normal_map_).filename());
+            m.metallic_map_ = dal::tostr(
+                dal::u8path(m.metallic_map_).filename()
+            );
+            m.roughness_map_ = dal::tostr(
+                dal::u8path(m.roughness_map_).filename()
+            );
         }
 
         const WorkDef* work_def_;
@@ -793,7 +793,7 @@ namespace {
             output_path_ = ktx_dir / file_path_.filename();
             output_path_.replace_extension(".ktx");
             if (fs::is_regular_file(output_path_)) {
-                SPDLOG_DEBUG("Use existing KTX: {}", output_path_.u8string());
+                SPDLOG_DEBUG("Use existing KTX: {}", dal::tostr(output_path_));
                 return this->success();
             }
 
@@ -804,7 +804,7 @@ namespace {
                 src_path.replace_extension(".png");
 
                 if (fs::exists(src_path)) {
-                    SPDLOG_DEBUG("Use existing PNG: {}", src_path.u8string());
+                    SPDLOG_DEBUG("Use existing PNG: {}", dal::tostr(src_path));
                 } else {
                     const auto content = ::read_file(file_path_);
                     if (!content)
@@ -813,7 +813,7 @@ namespace {
                     int width, height, channels;
                     const auto img = stbi_load_from_memory(
                         content->data(),
-                        content->size(),
+                        static_cast<int>(content->size()),
                         &width,
                         &height,
                         &channels,
@@ -875,12 +875,12 @@ namespace {
 
             ktx_cmd += ' ';
             ktx_cmd += '"';
-            ktx_cmd += src_path.u8string();
+            ktx_cmd += dal::tostr(src_path);
             ktx_cmd += '"';
 
             ktx_cmd += ' ';
             ktx_cmd += '"';
-            ktx_cmd += output_path_.u8string();
+            ktx_cmd += dal::tostr(output_path_);
             ktx_cmd += '"';
 
             SPDLOG_DEBUG("KTX command: {}", ktx_cmd);
@@ -907,7 +907,7 @@ namespace {
         }
 
         static bool is_ktx_compatible(const fs::path& path) {
-            const auto ext = path.extension().u8string();
+            const auto ext = dal::tostr(path.extension());
             return ext == ".png";
         }
 
@@ -957,7 +957,7 @@ namespace {
         auto& path() const { return file_path_; }
         auto& data() const { return data_; }
         auto size() const { return data_.size(); }
-        auto name() const { return file_path_.filename().u8string(); }
+        auto name() const { return dal::tostr(file_path_.filename()); }
 
     private:
         fs::path file_path_;
@@ -1021,7 +1021,7 @@ namespace dal {
                 tex_name, paths.root()
             );
             if (!fs::is_regular_file(src_path))
-                THROWF("Texture not found: {}\n", src_path.u8string());
+                THROWF("Texture not found: {}\n", dal::tostr(src_path));
 
             const auto tex_entry = yam_task.work().find_tex_entry(tex_name);
             if (tex_entry) {
@@ -1081,7 +1081,7 @@ namespace dal {
 
             SPDLOG_INFO(
                 "Output: '{}' ({})",
-                dun_path.u8string(),
+                dal::tostr(dun_path),
                 sung::format_bytes(bin_data.size())
             );
         } else {
