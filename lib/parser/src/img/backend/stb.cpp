@@ -1,4 +1,4 @@
-#include "daltools/img/backend/stb.hpp"
+#include "dal/parser/img/backend/stb.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>

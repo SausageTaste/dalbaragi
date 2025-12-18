@@ -1,8 +1,8 @@
-#include "daltools/dmd/exporter.h"
+#include "dal/tools/dmd/exporter.h"
 
 #include "dal/auxiliary/byte_tool.hpp"
-#include "daltools/common/decompress.hpp"
-#include "daltools/common/konst.h"
+#include "dal/parser/common/decompress.hpp"
+#include "dal/parser/common/konst.h"
 
 
 namespace {

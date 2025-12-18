@@ -3,7 +3,7 @@
 #include <optional>
 
 #include "dal/auxiliary/bin_data.hpp"
-#include "daltools/scene/struct.h"
+#include "dal/parser/scene/struct.h"
 
 
 namespace dal {

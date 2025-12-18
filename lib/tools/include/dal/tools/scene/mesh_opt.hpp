@@ -1,6 +1,6 @@
 #pragma once
 
-#include "daltools/scene/struct.h"
+#include "dal/parser/scene/struct.h"
 
 
 namespace dal {

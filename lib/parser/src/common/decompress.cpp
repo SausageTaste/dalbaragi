@@ -1,4 +1,4 @@
-#include "daltools/common/decompress.hpp"
+#include "dal/parser/common/decompress.hpp"
 
 #include <array>
 

@@ -21,12 +21,12 @@
 
 #include "dal/auxiliary/err_msg_holder.hpp"
 #include "dal/auxiliary/path.hpp"
-#include "daltools/bundle/bundle.hpp"
-#include "daltools/common/task_sys.hpp"
-#include "daltools/dmd/exporter.h"
-#include "daltools/json/parser.h"
-#include "daltools/scene/mesh_opt.hpp"
-#include "daltools/scene/modifier.h"
+#include "dal/parser/bundle/bundle.hpp"
+#include "dal/parser/common/task_sys.hpp"
+#include "dal/tools/dmd/exporter.h"
+#include "dal/tools/json/parser.h"
+#include "dal/tools/scene/mesh_opt.hpp"
+#include "dal/tools/scene/modifier.h"
 
 
 #define THROWF(...)                                \

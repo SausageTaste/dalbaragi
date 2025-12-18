@@ -3,24 +3,18 @@ set(public_header_dir ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(private_header_dir ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(private_source_dir ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-set(public_header_files
-    ${public_header_dir}/daltools/dmd/exporter.h
-    ${public_header_dir}/daltools/dsd/importer.hpp
-    ${public_header_dir}/daltools/dsd/struct.hpp
-    ${public_header_dir}/daltools/json/parser.h
-    ${public_header_dir}/daltools/scene/mesh_opt.hpp
-    ${public_header_dir}/daltools/scene/modifier.h
+file(GLOB_RECURSE public_header_files CONFIGURE_DEPENDS
+    "${public_header_dir}/*.h"
+    "${public_header_dir}/*.hpp"
 )
 
-set(private_source_files
-    ${private_source_dir}/dmd/exporter.cpp
-    ${private_source_dir}/dsd/importer.cpp
-    ${private_source_dir}/dsd/struct.cpp
-    ${private_source_dir}/json/parser.cpp
-    ${private_source_dir}/scene/mesh_opt.cpp
-    ${private_source_dir}/scene/modifier.cpp
-    ${private_source_dir}/scene/modifier_scene.cpp
-    ${private_source_dir}/scene/struct.cpp
+file(GLOB_RECURSE private_header_files CONFIGURE_DEPENDS
+    "${private_header_dir}/*.h"
+    "${private_header_dir}/*.hpp"
+)
+
+file(GLOB_RECURSE private_source_files CONFIGURE_DEPENDS
+    "${private_source_dir}/*.cpp"
 )
 
 

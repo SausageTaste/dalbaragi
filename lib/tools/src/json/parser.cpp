@@ -1,4 +1,4 @@
-#include "daltools/json/parser.h"
+#include "dal/tools/json/parser.h"
 
 #include <optional>
 #include <set>
@@ -8,8 +8,8 @@
 #include <nlohmann/json.hpp>
 
 #include "dal/auxiliary/byte_tool.hpp"
-#include "daltools/common/decompress.hpp"
-#include "daltools/common/konst.h"
+#include "dal/parser/common/decompress.hpp"
+#include "dal/parser/common/konst.h"
 
 
 namespace {

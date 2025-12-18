@@ -1,4 +1,4 @@
-#include "daltools/dsd/struct.hpp"
+#include "dal/tools/dsd/struct.hpp"
 
 
 namespace {

@@ -3,8 +3,8 @@
 #include <optional>
 #include <vector>
 
-#include "daltools/common/compress.hpp"
-#include "daltools/scene/struct.h"
+#include "dal/parser/common/compress.hpp"
+#include "dal/parser/scene/struct.h"
 
 
 namespace dal {

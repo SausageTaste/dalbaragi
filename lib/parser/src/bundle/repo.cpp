@@ -1,9 +1,9 @@
-#include "daltools/bundle/repo.hpp"
+#include "dal/parser/bundle/repo.hpp"
 
 #include <sung/basic/byte_arr.hpp>
 
-#include "daltools/bundle/bundle.hpp"
-#include "daltools/common/decompress.hpp"
+#include "dal/parser/bundle/bundle.hpp"
+#include "dal/parser/common/decompress.hpp"
 
 
 namespace dal {

@@ -10,8 +10,8 @@
 #include <sung/basic/stringtool.hpp>
 
 #include "dal/auxiliary/path.hpp"
-#include "daltools/bundle/bundle.hpp"
-#include "daltools/common/decompress.hpp"
+#include "dal/parser/bundle/bundle.hpp"
+#include "dal/parser/common/decompress.hpp"
 
 
 namespace fs = std::filesystem;

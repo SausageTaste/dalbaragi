@@ -5,7 +5,7 @@
 #include <ktx.h>
 #include <glm/glm.hpp>
 
-#include "daltools/img/img.hpp"
+#include "dal/parser/img/img.hpp"
 
 
 namespace dal {

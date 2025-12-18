@@ -1,6 +1,6 @@
 #pragma once
 
-#include "daltools/img/img2d.hpp"
+#include "dal/parser/img/img2d.hpp"
 
 
 namespace dal {

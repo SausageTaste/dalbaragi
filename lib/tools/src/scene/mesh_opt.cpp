@@ -1,4 +1,4 @@
-#include "daltools/scene/mesh_opt.hpp"
+#include "dal/tools/scene/mesh_opt.hpp"
 
 #include <meshoptimizer.h>
 

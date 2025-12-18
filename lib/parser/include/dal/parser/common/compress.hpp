@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "daltools/common/decompress.hpp"
+#include "dal/parser/common/decompress.hpp"
 
 
 namespace dal {

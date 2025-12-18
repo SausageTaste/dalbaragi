@@ -4,8 +4,8 @@
 
 #include <sung/basic/bytes.hpp>
 
-#include "daltools/dsd/struct.hpp"
-#include "daltools/scene/struct.h"
+#include "dal/parser/scene/struct.h"
+#include "dal/tools/dsd/struct.hpp"
 
 
 namespace dal::dsd {

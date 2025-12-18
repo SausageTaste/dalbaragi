@@ -1,12 +1,12 @@
-#include "daltools/dmd/parser.h"
+#include "dal/parser/dmd/parser.h"
 
 #include <stdexcept>
 
 #include <sung/basic/byte_arr.hpp>
 
 #include "dal/auxiliary/byte_tool.hpp"
-#include "daltools/common/decompress.hpp"
-#include "daltools/common/konst.h"
+#include "dal/parser/common/decompress.hpp"
+#include "dal/parser/common/konst.h"
 
 
 namespace {

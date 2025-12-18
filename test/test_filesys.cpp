@@ -3,9 +3,9 @@
 #include <spdlog/fmt/xchar.h>
 #include <sung/basic/stringtool.hpp>
 
-#include "daltools/filesys/filesys.hpp"
-#include "daltools/filesys/res_mgr.hpp"
-#include "daltools/img/backend/ktx.hpp"
+#include "dal/parser/filesys/filesys.hpp"
+#include "dal/parser/filesys/res_mgr.hpp"
+#include "dal/parser/img/backend/ktx.hpp"
 
 
 namespace {
