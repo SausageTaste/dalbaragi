@@ -1,4 +1,4 @@
-#include "daltools/common/byte_tool.h"
+#include "dal/auxiliary/byte_tool.hpp"
 
 
 namespace dal {

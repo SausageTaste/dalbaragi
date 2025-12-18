@@ -8,10 +8,10 @@
 #include <spdlog/fmt/fmt.h>
 #include <argparse/argparse.hpp>
 
+#include "dal/auxiliary/path.hpp"
 #include "daltools/common/konst.h"
 #include "daltools/dmd/exporter.h"
 #include "daltools/dmd/parser.h"
-#include "daltools/filesys/path.hpp"
 #include "daltools/json/parser.h"
 #include "daltools/scene/modifier.h"
 

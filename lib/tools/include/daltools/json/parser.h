@@ -2,7 +2,7 @@
 
 #include <optional>
 
-#include "daltools/common/bin_data.h"
+#include "dal/auxiliary/bin_data.hpp"
 #include "daltools/scene/struct.h"
 
 

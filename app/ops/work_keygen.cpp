@@ -5,9 +5,8 @@
 #include <spdlog/fmt/fmt.h>
 #include <argparse/argparse.hpp>
 
-//#include "daltools/common/crypto.h"
+#include "dal/auxiliary/util.hpp"
 #include "daltools/common/konst.h"
-#include "daltools/common/util.h"
 
 
 namespace dal {

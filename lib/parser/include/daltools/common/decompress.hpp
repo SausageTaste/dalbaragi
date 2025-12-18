@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "daltools/common/bin_data.h"
+#include "dal/auxiliary/bin_data.hpp"
 
 
 namespace dal {

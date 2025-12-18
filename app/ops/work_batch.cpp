@@ -19,11 +19,11 @@
 #include <sung/basic/stringtool.hpp>
 #include <sung/basic/time.hpp>
 
+#include "dal/auxiliary/err_msg_holder.hpp"
+#include "dal/auxiliary/path.hpp"
 #include "daltools/bundle/bundle.hpp"
-#include "daltools/common/err_msg_holder.hpp"
 #include "daltools/common/task_sys.hpp"
 #include "daltools/dmd/exporter.h"
-#include "daltools/filesys/path.hpp"
 #include "daltools/json/parser.h"
 #include "daltools/scene/mesh_opt.hpp"
 #include "daltools/scene/modifier.h"
@@ -510,7 +510,7 @@ namespace {
 
     class YamlTask
         : public enki::TaskSet
-        , public dal::ts::ErrorMsgHolder {
+        , public dal::ErrorMsgHolder {
 
     public:
         YamlTask(const Paths& paths) : paths_(paths) {}
@@ -543,7 +543,7 @@ namespace {
 
     class JsonTask
         : public enki::TaskSet
-        , public dal::ts::ErrorMsgHolder {
+        , public dal::ErrorMsgHolder {
 
     public:
         JsonTask() = default;
@@ -622,7 +622,7 @@ namespace {
 
     class DmdTask
         : public enki::TaskSet
-        , public dal::ts::ErrorMsgHolder {
+        , public dal::ErrorMsgHolder {
 
     public:
         DmdTask() = default;
@@ -754,7 +754,7 @@ namespace {
 
     class TextureTask
         : public enki::TaskSet
-        , public dal::ts::ErrorMsgHolder {
+        , public dal::ErrorMsgHolder {
 
     public:
         TextureTask() = default;
@@ -920,7 +920,7 @@ namespace {
 
     class FileLoadTask
         : public enki::TaskSet
-        , public dal::ts::ErrorMsgHolder {
+        , public dal::ErrorMsgHolder {
 
     public:
         FileLoadTask() = default;

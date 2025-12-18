@@ -5,7 +5,7 @@
 #include <spdlog/fmt/fmt.h>
 
 
-namespace dal::ts {
+namespace dal {
 
     class ErrorMsgHolder {
 
@@ -32,4 +32,4 @@ namespace dal::ts {
         bool done_ = false;
     };
 
-}  // namespace dal::ts
+}  // namespace dal

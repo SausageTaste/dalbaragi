@@ -9,9 +9,9 @@
 #include <sung/basic/byte_arr.hpp>
 #include <sung/basic/stringtool.hpp>
 
+#include "dal/auxiliary/path.hpp"
 #include "daltools/bundle/bundle.hpp"
 #include "daltools/common/decompress.hpp"
-#include "daltools/filesys/path.hpp"
 
 
 namespace fs = std::filesystem;

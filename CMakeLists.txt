@@ -32,6 +32,7 @@ find_package(Stb MODULE REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
 
+add_subdirectory(lib/auxiliary)
 add_subdirectory(lib/parser)
 
 

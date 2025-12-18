@@ -9,8 +9,8 @@
 #include <sung/basic/aabb.hpp>
 #include <sung/basic/geometry2d.hpp>
 
-#include "daltools/common/glm_tool.hpp"
-#include "daltools/filesys/path.hpp"
+#include "dal/auxiliary/glm_tool.hpp"
+#include "dal/auxiliary/path.hpp"
 #include "daltools/img/backend/ktx.hpp"
 #include "daltools/img/img.hpp"
 #include "daltools/img/img2d.hpp"

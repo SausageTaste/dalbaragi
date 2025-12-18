@@ -1,4 +1,4 @@
-set(target_name dalbaragi_parser)
+set(target_name dalbaragi_aux)
 set(public_header_dir ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(private_header_dir ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(private_source_dir ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -21,6 +21,7 @@ file(GLOB_RECURSE private_source_files CONFIGURE_DEPENDS
 add_library(${target_name} STATIC)
 add_library(dalbaragi::${target_name} ALIAS ${target_name})
 set_target_properties(${target_name} PROPERTIES FOLDER "dalbaragi")
+target_compile_features(${target_name} PUBLIC cxx_std_20)
 
 target_sources(${target_name}
     PUBLIC
@@ -37,17 +38,12 @@ target_sources(${target_name}
 target_include_directories(${target_name}
     PUBLIC
         ${public_header_dir}
-        ${Stb_INCLUDE_DIR}
     PRIVATE
         ${private_header_dir}
 )
 
-target_link_libraries(${target_name}
-    PUBLIC
-        aklomp::base64
-        dalbaragi::dalbaragi_aux
-        enkiTS::enkiTS
-        KTX::ktx
-        unofficial::brotli::brotlidec
-        ZLIB::ZLIB
+target_link_libraries(${target_name} PUBLIC
+    glm::glm
+    spdlog::spdlog
+    sungtools::sungtools_basic
 )

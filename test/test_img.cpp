@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 #include <spdlog/fmt/fmt.h>
 
-#include "daltools/common/util.h"
+#include "dal/auxiliary/util.hpp"
 #include "daltools/img/backend/ktx.hpp"
 #include "daltools/img/backend/stb.hpp"
 

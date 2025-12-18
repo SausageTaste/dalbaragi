@@ -1,8 +1,8 @@
-#include "daltools/common/err_msg_holder.hpp"
+#include "dal/auxiliary/err_msg_holder.hpp"
 
 
 // ErrorMsgHolder
-namespace dal::ts {
+namespace dal {
 
     bool ErrorMsgHolder::is_done() const { return done_; }
 
@@ -38,4 +38,4 @@ namespace dal::ts {
         done_ = true;
     }
 
-}  // namespace dal::ts
+}  // namespace dal

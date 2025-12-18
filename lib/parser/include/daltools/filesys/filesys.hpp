@@ -6,7 +6,7 @@
 
 #include <sung/basic/bytes.hpp>
 
-#include "daltools/filesys/path.hpp"
+#include "dal/auxiliary/path.hpp"
 
 
 namespace dal {

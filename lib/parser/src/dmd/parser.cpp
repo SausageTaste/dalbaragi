@@ -4,7 +4,7 @@
 
 #include <sung/basic/byte_arr.hpp>
 
-#include "daltools/common/byte_tool.h"
+#include "dal/auxiliary/byte_tool.hpp"
 #include "daltools/common/decompress.hpp"
 #include "daltools/common/konst.h"
 

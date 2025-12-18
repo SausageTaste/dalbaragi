@@ -6,8 +6,7 @@
 #include <spdlog/fmt/fmt.h>
 #include <argparse/argparse.hpp>
 
-// #include "daltools/common/crypto.h"
-#include "daltools/common/util.h"
+#include "dal/auxiliary/util.hpp"
 
 
 namespace {

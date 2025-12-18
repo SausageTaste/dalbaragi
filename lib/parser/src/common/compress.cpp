@@ -7,7 +7,7 @@
 #include <zlib.h>
 #include <sung/basic/mamath.hpp>
 
-#include "daltools/common/byte_tool.h"
+#include "dal/auxiliary/byte_tool.hpp"
 
 
 namespace {

@@ -3,10 +3,10 @@
 #include <iostream>
 #include <sstream>
 
-#include "daltools/common/byte_tool.h"
+#include "dal/auxiliary/byte_tool.hpp"
+#include "dal/auxiliary/path.hpp"
 #include "daltools/dmd/exporter.h"
 #include "daltools/dmd/parser.h"
-#include "daltools/filesys/path.hpp"
 #include "daltools/scene/modifier.h"
 
 

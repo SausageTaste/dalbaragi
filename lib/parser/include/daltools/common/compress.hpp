@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-#include "daltools/common/bin_data.h"
 #include "daltools/common/decompress.hpp"
 
 

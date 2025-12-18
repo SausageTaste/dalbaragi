@@ -6,10 +6,10 @@
 #include <spdlog/fmt/fmt.h>
 #include <sung/basic/time.hpp>
 
-#include "daltools/common/util.h"
+#include "dal/auxiliary/path.hpp"
+#include "dal/auxiliary/util.hpp"
 #include "daltools/dmd/exporter.h"
 #include "daltools/dmd/parser.h"
-#include "daltools/filesys/path.hpp"
 #include "daltools/json/parser.h"
 #include "daltools/scene/modifier.h"
 
