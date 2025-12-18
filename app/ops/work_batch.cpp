@@ -23,10 +23,10 @@
 #include "dal/auxiliary/path.hpp"
 #include "dal/parser/bundle/bundle.hpp"
 #include "dal/parser/common/task_sys.hpp"
-#include "dal/tools/dmd/exporter.h"
-#include "dal/tools/json/parser.h"
+#include "dal/tools/dmd/exporter.hpp"
+#include "dal/tools/json/parser.hpp"
 #include "dal/tools/scene/mesh_opt.hpp"
-#include "dal/tools/scene/modifier.h"
+#include "dal/tools/scene/modifier.hpp"
 
 
 #define THROWF(...)                                \

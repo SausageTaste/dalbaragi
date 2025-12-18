@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "dal/parser/common/compress.hpp"
-#include "dal/parser/scene/struct.h"
+#include "dal/parser/scene/struct.hpp"
 
 
 namespace dal {

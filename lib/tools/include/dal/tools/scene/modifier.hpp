@@ -2,7 +2,7 @@
 
 #include <filesystem>
 
-#include "dal/parser/scene/struct.h"
+#include "dal/parser/scene/struct.hpp"
 
 
 namespace dal {

@@ -1,4 +1,4 @@
-#include "dal/parser/dmd/parser.h"
+#include "dal/parser/dmd/parser.hpp"
 
 #include <stdexcept>
 
@@ -6,7 +6,7 @@
 
 #include "dal/auxiliary/byte_tool.hpp"
 #include "dal/parser/common/decompress.hpp"
-#include "dal/parser/common/konst.h"
+#include "dal/parser/common/konst.hpp"
 
 
 namespace {

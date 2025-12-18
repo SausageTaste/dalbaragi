@@ -4,7 +4,7 @@
 
 #include <sung/basic/bytes.hpp>
 
-#include "dal/parser/scene/struct.h"
+#include "dal/parser/scene/struct.hpp"
 #include "dal/tools/dsd/struct.hpp"
 
 

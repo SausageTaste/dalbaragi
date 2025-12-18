@@ -1,4 +1,4 @@
-#include "dal/parser/scene/struct.h"
+#include "dal/parser/scene/struct.hpp"
 
 #include <stdexcept>
 
