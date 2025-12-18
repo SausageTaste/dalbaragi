@@ -6,8 +6,8 @@
 #include <spdlog/fmt/fmt.h>
 
 #include "dal/auxiliary/util.hpp"
-#include "dal/parser/img/backend/ktx.hpp"
-#include "dal/parser/img/backend/stb.hpp"
+#include "dal/img/backend/ktx.hpp"
+#include "dal/img/backend/stb.hpp"
 
 
 namespace {

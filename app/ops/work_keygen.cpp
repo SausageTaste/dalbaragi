@@ -6,7 +6,7 @@
 #include <argparse/argparse.hpp>
 
 #include "dal/auxiliary/util.hpp"
-#include "dal/parser/common/konst.hpp"
+#include "dal/common/konst.hpp"
 
 
 namespace dal {

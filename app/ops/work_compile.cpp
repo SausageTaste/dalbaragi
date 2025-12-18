@@ -9,11 +9,11 @@
 #include <argparse/argparse.hpp>
 
 #include "dal/auxiliary/path.hpp"
-#include "dal/parser/common/konst.hpp"
-#include "dal/parser/dmd/parser.hpp"
-#include "dal/tools/dmd/exporter.hpp"
-#include "dal/tools/json/parser.hpp"
-#include "dal/tools/scene/modifier.hpp"
+#include "dal/common/konst.hpp"
+#include "dal/dmd/parser.hpp"
+#include "dal/dmd/exporter.hpp"
+#include "dal/json/parser.hpp"
+#include "dal/scene/modifier.hpp"
 
 
 namespace {

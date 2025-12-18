@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "dal/parser/common/compress.hpp"
+#include "dal/common/compress.hpp"
 
 
 namespace {

@@ -5,9 +5,9 @@
 
 #include "dal/auxiliary/byte_tool.hpp"
 #include "dal/auxiliary/path.hpp"
-#include "dal/parser/dmd/parser.hpp"
-#include "dal/tools/dmd/exporter.hpp"
-#include "dal/tools/scene/modifier.hpp"
+#include "dal/dmd/parser.hpp"
+#include "dal/dmd/exporter.hpp"
+#include "dal/scene/modifier.hpp"
 
 
 #define STRINGIFY(x) #x

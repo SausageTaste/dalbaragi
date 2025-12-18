@@ -1,4 +1,4 @@
-#include "dal/tools/scene/modifier.hpp"
+#include "dal/scene/modifier.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -11,9 +11,9 @@
 
 #include "dal/auxiliary/glm_tool.hpp"
 #include "dal/auxiliary/path.hpp"
-#include "dal/parser/img/backend/ktx.hpp"
-#include "dal/parser/img/img.hpp"
-#include "dal/parser/img/img2d.hpp"
+#include "dal/img/backend/ktx.hpp"
+#include "dal/img/img.hpp"
+#include "dal/img/img2d.hpp"
 
 
 namespace {

@@ -39,13 +39,19 @@ target_include_directories(${target_name}
         ${public_header_dir}
     PRIVATE
         ${private_header_dir}
+        ${Stb_INCLUDE_DIR}
 )
 
 target_link_libraries(${target_name}
     PUBLIC
-        dalbaragi::dalbaragi_parser
+        aklomp::base64
+        dalbaragi::dalbaragi_aux
+        enkiTS::enkiTS
+        KTX::ktx
         meshoptimizer::meshoptimizer
         nlohmann_json::nlohmann_json
+        unofficial::brotli::brotlidec
         unofficial::brotli::brotlienc
         yaml-cpp::yaml-cpp
+        ZLIB::ZLIB
 )

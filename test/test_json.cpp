@@ -8,10 +8,10 @@
 
 #include "dal/auxiliary/path.hpp"
 #include "dal/auxiliary/util.hpp"
-#include "dal/parser/dmd/parser.hpp"
-#include "dal/tools/dmd/exporter.hpp"
-#include "dal/tools/json/parser.hpp"
-#include "dal/tools/scene/modifier.hpp"
+#include "dal/dmd/parser.hpp"
+#include "dal/dmd/exporter.hpp"
+#include "dal/json/parser.hpp"
+#include "dal/scene/modifier.hpp"
 
 
 namespace fs = std::filesystem;
