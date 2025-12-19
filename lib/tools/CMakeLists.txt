@@ -44,10 +44,11 @@ target_include_directories(${target_name}
 
 target_link_libraries(${target_name}
     PUBLIC
-        aklomp::base64
         dalbaragi::dalbaragi_aux
         enkiTS::enkiTS
         KTX::ktx
+    PRIVATE
+        aklomp::base64
         meshoptimizer::meshoptimizer
         nlohmann_json::nlohmann_json
         unofficial::brotli::brotlidec
