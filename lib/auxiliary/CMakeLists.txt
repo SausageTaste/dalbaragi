@@ -3,18 +3,22 @@ set(public_header_dir ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(private_header_dir ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(private_source_dir ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-file(GLOB_RECURSE public_header_files CONFIGURE_DEPENDS
-    "${public_header_dir}/*.h"
-    "${public_header_dir}/*.hpp"
+set(public_header_files
+    ${public_header_dir}/dal/auxiliary/bin_data.hpp
+    ${public_header_dir}/dal/auxiliary/byte_tool.hpp
+    ${public_header_dir}/dal/auxiliary/err_msg_holder.hpp
+    ${public_header_dir}/dal/auxiliary/glm_tool.hpp
+    ${public_header_dir}/dal/auxiliary/path.hpp
+    ${public_header_dir}/dal/auxiliary/timer.hpp
+    ${public_header_dir}/dal/auxiliary/util.hpp
 )
 
-file(GLOB_RECURSE private_header_files CONFIGURE_DEPENDS
-    "${private_header_dir}/*.h"
-    "${private_header_dir}/*.hpp"
-)
-
-file(GLOB_RECURSE private_source_files CONFIGURE_DEPENDS
-    "${private_source_dir}/*.cpp"
+set(private_source_files
+    ${private_source_dir}/byte_tool.cpp
+    ${private_source_dir}/err_msg_holder.cpp
+    ${private_source_dir}/path.cpp
+    ${private_source_dir}/timer.cpp
+    ${private_source_dir}/util.cpp
 )
 
 
