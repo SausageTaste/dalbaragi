@@ -1,12 +1,14 @@
 #pragma once
 
-#include <cstdint>
 #include <vector>
+
+#include <sung/basic/byte_type.hpp>
 
 
 namespace dal {
 
-    using binvec_t = std::vector<uint8_t>;
+    using byte8 = sung::byte8;
+    using binvec_t = std::vector<byte8>;
 
 
     class BinDataView {
@@ -14,17 +16,17 @@ namespace dal {
     public:
         BinDataView() = default;
 
-        BinDataView(const uint8_t* data, const size_t size)
+        BinDataView(const byte8* data, const size_t size)
             : data_(data), size_(size) {}
 
         BinDataView(const binvec_t& data)
             : data_(data.data()), size_(data.size()) {}
 
-        const uint8_t* data() const { return this->data_; }
+        const byte8* data() const { return this->data_; }
         size_t size() const { return this->size_; }
 
     private:
-        const uint8_t* data_ = nullptr;
+        const byte8* data_ = nullptr;
         size_t size_ = 0;
     };
 
