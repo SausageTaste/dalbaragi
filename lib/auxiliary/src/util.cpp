@@ -79,13 +79,9 @@ namespace dal {
         return *this;
     }
 
-    ValuesReport& ValuesReport::set_value(str v) {
+    ValuesReport& ValuesReport::set_value_str(str v) {
         records_.back().value_ = v;
         return *this;
-    }
-
-    ValuesReport& ValuesReport::set_value(uint32_t v) {
-        return this->set_value(fmt::format("{}", v));
     }
 
     ValuesReport& ValuesReport::add_value(str v) {
@@ -105,24 +101,6 @@ namespace dal {
         return *this;
     }
 
-    ValuesReport& ValuesReport::add(int indent, str label, str value) {
-        auto& r = records_.emplace_back();
-
-        r.indent = indent;
-        r.label_ = label;
-        r.value_ = value;
-
-        return *this;
-    }
-
-    ValuesReport& ValuesReport::add(int indent, str label, uint32_t value) {
-        return this->add(indent, label, fmt::format("{}", value));
-    }
-
-    ValuesReport& ValuesReport::add(int indent, str label, uint64_t v) {
-        return this->add(indent, label, fmt::format("{}", v));
-    }
-
     ValuesReport& ValuesReport::add(
         int indent, str label, const uint32_t* arr, size_t size
     ) {
@@ -136,10 +114,6 @@ namespace dal {
         ss << "]";
 
         return this->add(indent, label, ss.str());
-    }
-
-    ValuesReport& ValuesReport::add(int indent, str label, double value) {
-        return this->add(indent, label, fmt::format("{:.2f}", value));
     }
 
     ValuesReport& ValuesReport::add(int indent, str label) {

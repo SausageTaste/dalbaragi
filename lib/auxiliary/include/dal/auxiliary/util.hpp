@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <format>
 #include <optional>
 #include <vector>
 
@@ -26,20 +27,23 @@ namespace dal {
         // Step by step
         ValuesReport& new_entry(str label);
         ValuesReport& new_entry(int indent, str label);
-        ValuesReport& set_value(str v);
-        ValuesReport& set_value(uint32_t v);
+
+        template <typename T>
+        ValuesReport& set_value(T v) {
+            return this->set_value_str(std::format("{}", v));
+        }
 
         // Append to last entry's value, with a comma
         ValuesReport& add_value(str v);
         ValuesReport& add_value(uint32_t v);
 
         // All in one
-        ValuesReport& add(int indent, str label, str v);
-        ValuesReport& add(int indent, str label, uint32_t v);
-        ValuesReport& add(int indent, str label, uint64_t v);
-        ValuesReport& add(int indent, str label, double v);
-        ValuesReport& add(int indent, str label);
+        template <typename T>
+        ValuesReport& add(int indent, str label, const T& v) {
+            return this->new_entry(indent, label).set_value(v);
+        }
 
+        ValuesReport& add(int indent, str label);
         ValuesReport& add(
             int indent, str label, const uint32_t* arr, size_t size
         );
@@ -47,6 +51,8 @@ namespace dal {
         std::string build_str() const;
 
     private:
+        ValuesReport& set_value_str(str v);
+
         struct Record;
         std::vector<Record> records_;
         std::string title_;
