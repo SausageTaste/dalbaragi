@@ -9,14 +9,19 @@ project(dalbaragi
     LANGUAGES CXX
 )
 
+include(FetchContent)
+
+
+set(SUNGTOOLS_DEV_PATH "${SUNGTOOLS_DEV_PATH}" CACHE PATH "Path to local sungtools checkout")
+if (NOT SUNGTOOLS_DEV_PATH AND DEFINED ENV{SUNGTOOLS_DEV_PATH})
+  set(SUNGTOOLS_DEV_PATH "$ENV{SUNGTOOLS_DEV_PATH}")
+endif()
 
 set(DAL_BUILD_APP OFF CACHE BOOL "Build projects in app folder")
 set(DAL_BUILD_TEST OFF CACHE BOOL "Enable testing")
 
 
 # ------------------------------------------------------------------------------
-
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/sungtools)
 
 find_package(base64 CONFIG REQUIRED)
 find_package(enkiTS CONFIG REQUIRED)
@@ -32,6 +37,25 @@ find_package(ZLIB REQUIRED)
 
 add_subdirectory(lib/auxiliary)
 add_subdirectory(lib/tools)
+
+if (NOT TARGET sungtools::sungtools_basic)
+    if (SUNGTOOLS_DEV_PATH)
+        if (EXISTS "${SUNGTOOLS_DEV_PATH}/CMakeLists.txt")
+            message(STATUS "Using local sungtools: ${SUNGTOOLS_DEV_PATH}")
+            add_subdirectory("${SUNGTOOLS_DEV_PATH}" "${CMAKE_BINARY_DIR}/fetched/sungtools")
+        else()
+            message(FATAL_ERROR "SUNGTOOLS_DEV_PATH is set but invalid: ${SUNGTOOLS_DEV_PATH}")
+        endif()
+    else()
+        message(STATUS "Fetching sungtools via FetchContent")
+        FetchContent_Declare(
+            fetch_sungtools
+            GIT_REPOSITORY  https://github.com/SausageTaste/sungtools.git
+            GIT_TAG         main
+        )
+        FetchContent_MakeAvailable(fetch_sungtools)
+    endif()
+endif()
 
 
 # ------------------------------------------------------------------------------
