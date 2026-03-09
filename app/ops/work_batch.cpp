@@ -70,9 +70,9 @@ namespace {
     }
 
     std::string clean_tex_path(std::string path) {
-        if (path._Starts_with("//")) {
+        if (path.starts_with("//")) {
             path = path.substr(2);
-        } else if (path._Starts_with("/")) {
+        } else if (path.starts_with("/")) {
             path = path.substr(1);
         }
 
@@ -221,9 +221,9 @@ namespace {
                 const auto entry_name = x.first.as<std::string>();
                 const auto& data = x.second;
 
-                if (entry_name._Starts_with("dmd")) {
+                if (entry_name.starts_with("dmd")) {
                     this->parse_dmd(data);
-                } else if (entry_name._Starts_with("bundle")) {
+                } else if (entry_name.starts_with("bundle")) {
                     if (bundle_) {
                         THROWF("Only one bundle is allowed.");
                     } else {
@@ -232,11 +232,11 @@ namespace {
                         dst.name_ = data["name"].as<std::string>();
                         dst.comp_level_ = data["compression_level"].as<int>();
                     }
-                } else if (entry_name._Starts_with("texture_lookup_paths")) {
+                } else if (entry_name.starts_with("texture_lookup_paths")) {
                     for (auto& s : data) {
                         texture_lookup_paths_.emplace_back(s.as<std::string>());
                     }
-                } else if (entry_name._Starts_with("texture_list")) {
+                } else if (entry_name.starts_with("texture_list")) {
                     this->parse_texture_list(data);
                 } else {
                     fmt::print("Unknown entry: {}\n", entry_name);
