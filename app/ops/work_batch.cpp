@@ -865,12 +865,12 @@ namespace {
 
             if (work_def_->srgb_) {
                 ktx_cmd += fmt::format(" --format {}_SRGB", format_prefix);
-                ktx_cmd += " --assign-oetf srgb";
-                ktx_cmd += " --convert-oetf srgb";
+                ktx_cmd += " --assign-tf srgb";
+                ktx_cmd += " --convert-tf srgb";
             } else {
                 ktx_cmd += fmt::format(" --format {}_UNORM", format_prefix);
-                ktx_cmd += " --assign-oetf linear";
-                ktx_cmd += " --convert-oetf linear";
+                ktx_cmd += " --assign-tf linear";
+                ktx_cmd += " --convert-tf linear";
             }
 
             ktx_cmd += ' ';

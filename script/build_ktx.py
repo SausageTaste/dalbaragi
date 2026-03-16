@@ -25,12 +25,12 @@ def __gen_cmd_str(ch_count: int, srgb: bool, src_path: str):
 
     if srgb:
         commands.append(f"--format {format_prefix}_SRGB")
-        commands.append("--assign-oetf srgb")
-        commands.append("--convert-oetf srgb")
+        commands.append("--assign-tf srgb")
+        commands.append("--convert-tf srgb")
     else:
         commands.append(f"--format {format_prefix}_UNORM")
-        commands.append("--assign-oetf linear")
-        commands.append("--convert-oetf linear")
+        commands.append("--assign-tf linear")
+        commands.append("--convert-tf linear")
 
     commands.append(f'"{src_path}"')
     dst_path = os.path.splitext(src_path)[0] + ".ktx"

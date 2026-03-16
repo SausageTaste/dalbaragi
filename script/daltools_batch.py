@@ -188,12 +188,12 @@ class KtxParameters:
 
         if self.srgb:
             commands.append(f"--format {format_prefix}_SRGB")
-            commands.append("--assign-oetf srgb")
-            commands.append("--convert-oetf srgb")
+            commands.append("--assign-tf srgb")
+            commands.append("--convert-tf srgb")
         else:
             commands.append(f"--format {format_prefix}_UNORM")
-            commands.append("--assign-oetf linear")
-            commands.append("--convert-oetf linear")
+            commands.append("--assign-tf linear")
+            commands.append("--convert-tf linear")
 
         commands.append(f'"{self.src_path}"')
         commands.append(f'"{self.dst_path}"')
