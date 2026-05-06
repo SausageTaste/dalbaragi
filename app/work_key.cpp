@@ -38,7 +38,7 @@ namespace dal {
             fmt::print("Key type: {}\n", attrib.get_type_str());
 
             const auto a = std::chrono::system_clock::to_time_t(attrib.m_created_time);
-            fmt::print("Created date: {:%F %T %z}\n", fmt::localtime(a));
+            // fmt::print("Created date: {:%F %T %z}\n", fmt::localtime(a));
             std::cout << "===================================\n";
         }
     }
