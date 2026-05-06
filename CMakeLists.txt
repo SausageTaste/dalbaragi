@@ -35,42 +35,42 @@ FetchContent_Declare(
 FetchContent_Declare(
     fetch_libhydrogen
     GIT_REPOSITORY https://github.com/jedisct1/libhydrogen
-    GIT_TAG        c18e510d23c7539629e306d47925a35327eb1ebf
+    GIT_TAG        4bcc4b4b6ae35b0bb9979201a94fe6cae7d528aa
     GIT_PROGRESS   TRUE
 )
 
 FetchContent_Declare(
     fetch_argparse
     GIT_REPOSITORY https://github.com/p-ranav/argparse
-    GIT_TAG        v3.0
+    GIT_TAG        v3.2
     GIT_PROGRESS   TRUE
 )
 
 FetchContent_Declare(
     fetch_json
     GIT_REPOSITORY https://github.com/nlohmann/json
-    GIT_TAG        v3.11.3
+    GIT_TAG        v3.12.0
     GIT_PROGRESS   TRUE
 )
 
 FetchContent_Declare(
     fetch_spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog
-    GIT_TAG        v1.14.1
+    GIT_TAG        v1.17.0
     GIT_PROGRESS   TRUE
 )
 
 FetchContent_Declare(
     fetch_base64
     GIT_REPOSITORY https://github.com/aklomp/base64
-    GIT_TAG        b20a31a997e0b48274fa09e58b65ee9202531e4f
+    GIT_TAG        v0.5.2
     GIT_PROGRESS   TRUE
 )
 
 FetchContent_Declare(
     fetch_googletest
     GIT_REPOSITORY https://github.com/google/googletest
-    GIT_TAG        v1.14.0
+    GIT_TAG        v1.17.0
     GIT_PROGRESS   TRUE
 )
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -78,14 +78,14 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_Declare(
     fetch_brotli
     GIT_REPOSITORY https://github.com/google/brotli
-    GIT_TAG        v1.1.0
+    GIT_TAG        v1.2.0
     GIT_PROGRESS   TRUE
 )
 
 FetchContent_Declare(
     fetch_stb
     GIT_REPOSITORY    https://github.com/nothings/stb
-    GIT_TAG           013ac3beddff3dbffafd5177e7972067cd2b5083
+    GIT_TAG           31c1ad37456438565541f4919958214b6e762fb4
     CONFIGURE_COMMAND ""
     BUILD_COMMAND     ""
 )
@@ -93,7 +93,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     fetch_ktx
     GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software
-    GIT_TAG        v4.3.2
+    GIT_TAG        v4.4.2
     GIT_PROGRESS   TRUE
 )
 set(KTX_FEATURE_STATIC_LIBRARY ON CACHE BOOL "" FORCE)
